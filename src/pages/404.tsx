@@ -6,7 +6,6 @@ const NotFoundPage = () => {
 
   return (
     <>
-      <Navbar />
       <div className="container mx-auto p-8 text-center min-h-screen">
         <h1 className="text-4xl font-bold mb-4 text-gray-800 dark:text-white">
           404 - Page Not Found
