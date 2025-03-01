@@ -1,6 +1,7 @@
 import { useAuth } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { DashboardLayout } from '../components/layout/DashboardLayout'
 
 const Dashboard = () => {
   const { userId } = useAuth()
@@ -30,6 +31,7 @@ const Dashboard = () => {
   }
 
   return (
+    <DashboardLayout>
     <div className="p-8">
       <h1 className="text-3xl mb-6">Your Kanban Boards</h1>
       
@@ -59,6 +61,7 @@ const Dashboard = () => {
         ))}
       </div>
     </div>
+  </DashboardLayout>
   )
 }
 

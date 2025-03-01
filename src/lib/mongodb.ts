@@ -1,5 +1,16 @@
 import mongoose from 'mongoose'
 
+// Define a type for our cached connection
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
+}
+
+// Extend the NodeJS global type
+declare global {
+  var mongoose: MongooseCache | undefined;
+}
+
 const MONGODB_URI = process.env.MONGODB_URI!
 
 if (!MONGODB_URI) {

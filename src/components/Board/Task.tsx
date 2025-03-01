@@ -1,4 +1,6 @@
 import { Draggable } from 'react-beautiful-dnd'
+import { useState } from 'react'
+import { TaskDetailModal } from './TaskDetailModal'
 
 interface TaskProps {
   task: any
@@ -22,7 +24,7 @@ export const Task = ({ task, index }: TaskProps) => {
           className="bg-white p-4 rounded shadow cursor-pointer hover:bg-gray-50"
         >
           <div className="flex items-center gap-2 mb-2">
-            {task.labels.map((label: string) => (
+            {task.labels && task.labels.map((label: string) => (
               <span 
                 key={label}
                 className="text-xs px-2 py-1 rounded"
@@ -56,7 +58,7 @@ export const Task = ({ task, index }: TaskProps) => {
             task={task}
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            onUpdate={(updatedTask) => {
+            onUpdate={(updatedTask: any) => {
               // Propagate changes up
             }}
             onDelete={() => {

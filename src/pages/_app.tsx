@@ -1,11 +1,23 @@
-import { ClerkAuthProvider } from '../lib/clerk'
+import { ClerkProvider, SignedIn, SignedOut } from '@clerk/nextjs'
 import '../styles/globals.css'
+import type { AppProps } from 'next/app'
+import { Navbar } from '@/components/layout/Navbar'
 
-function MyApp({ Component, pageProps }) {
+function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <ClerkAuthProvider>
-      <Component {...pageProps} />
-    </ClerkAuthProvider>
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || ''}>
+      <Navbar />
+      <main className="container mx-auto pt-16">
+        <SignedIn>
+          {/* Render content only for signed in users */}
+          <Component {...pageProps} />
+        </SignedIn>
+        <SignedOut>
+          {/* Render content only for signed out users */}
+          <Component {...pageProps} />
+        </SignedOut>
+      </main>
+    </ClerkProvider>
   )
 }
 
