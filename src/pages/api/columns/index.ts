@@ -2,7 +2,7 @@ import { getAuth } from '@clerk/nextjs/server'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import Column from '../../../models/Column'
 import Board from '../../../models/Board'
-import { dbConnect} from '../../../lib/mongodb'
+import dbConnect from '../../../lib/mongodb' // Fixed import statement
 import mongoose from 'mongoose'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -10,7 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await dbConnect()
     
     const { userId } = getAuth(req)
-    const { boardId } = req.query
+    // Get boardId from both query and body to support different request types
+    const boardId = req.query.boardId || req.body.boardId
     
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' })
@@ -18,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Validate boardId
     if (!boardId || typeof boardId !== 'string' || !mongoose.Types.ObjectId.isValid(boardId)) {
-      return res.status(400).json({ error: 'Invalid board ID' })
+      return res.status(400).json({ error: 'Invalid board ID', receivedId: boardId })
     }
     
     // Verify board exists and belongs to user

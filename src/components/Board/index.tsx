@@ -61,27 +61,30 @@ const Board = ({ boardId }: BoardProps) => {
 
   const handleDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId, type } = result;
-
+    
+    // Add debugging to see what's happening
+    console.log('Drag end result:', { destination, source, draggableId, type });
+    
     // If there's no destination or the item was dropped back in its original position
     if (!destination || 
         (destination.droppableId === source.droppableId && 
          destination.index === source.index)) {
       return;
     }
-
+    
     if (!board) return;
-
+    
     // Handle column reordering
     if (type === 'column') {
       const newColumns = Array.from(board.columns);
       const [movedColumn] = newColumns.splice(source.index, 1);
       newColumns.splice(destination.index, 0, movedColumn);
-
+    
       setBoard({
         ...board,
         columns: newColumns
       });
-
+    
       try {
         await fetch(`/api/boards/${boardId}/columns/reorder`, {
           method: 'PUT',
@@ -95,31 +98,39 @@ const Board = ({ boardId }: BoardProps) => {
       
       return;
     }
-
+    
     // Handle task reordering
-    const sourceColumn = board.columns.find(col => col._id === source.droppableId);
-    const destColumn = board.columns.find(col => col._id === destination.droppableId);
-
-    if (!sourceColumn || !destColumn) return;
-
+    // Make sure we're using string IDs for droppableId comparison
+    const sourceColumn = board.columns.find(col => col._id.toString() === source.droppableId);
+    const destColumn = board.columns.find(col => col._id.toString() === destination.droppableId);
+    
+    if (!sourceColumn || !destColumn) {
+      console.error('Could not find columns:', { 
+        sourceId: source.droppableId, 
+        destId: destination.droppableId,
+        columns: board.columns.map(c => ({ id: c._id, title: c.title }))
+      });
+      return;
+    }
+    
     // If moving within the same column
     if (sourceColumn._id === destColumn._id) {
       const newTasks = Array.from(sourceColumn.tasks);
       const [movedTask] = newTasks.splice(source.index, 1);
       newTasks.splice(destination.index, 0, movedTask);
-
+    
       const newColumns = board.columns.map(col => {
         if (col._id === sourceColumn._id) {
           return { ...col, tasks: newTasks };
         }
         return col;
       });
-
+    
       setBoard({
         ...board,
         columns: newColumns
       });
-
+    
       try {
         await fetch(`/api/tasks/reorder`, {
           method: 'PUT',
@@ -139,7 +150,7 @@ const Board = ({ boardId }: BoardProps) => {
       const destTasks = Array.from(destColumn.tasks);
       const [movedTask] = sourceTasks.splice(source.index, 1);
       destTasks.splice(destination.index, 0, movedTask);
-
+    
       const newColumns = board.columns.map(col => {
         if (col._id === sourceColumn._id) {
           return { ...col, tasks: sourceTasks };
@@ -149,12 +160,12 @@ const Board = ({ boardId }: BoardProps) => {
         }
         return col;
       });
-
+    
       setBoard({
         ...board,
         columns: newColumns
       });
-
+    
       try {
         await fetch(`/api/tasks/${movedTask._id}/move`, {
           method: 'PUT',
@@ -170,27 +181,32 @@ const Board = ({ boardId }: BoardProps) => {
       }
     }
   };
-
+  
   const handleAddColumn = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newColumnTitle.trim() || !board) return;
     
     try {
-      const response = await fetch(`/api/columns`, {
+      console.log('Creating column with title:', newColumnTitle, 'for board:', boardId);
+      
+      // Make sure boardId is passed as a query parameter instead of in the body
+      const response = await fetch(`/api/columns?boardId=${boardId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          title: newColumnTitle,
-          boardId
+          title: newColumnTitle
         })
       });
       
       if (!response.ok) {
-        throw new Error('Failed to create column');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Server response:', response.status, errorData);
+        throw new Error(errorData.error || `Failed to create column (${response.status})`);
       }
       
       const newColumn = await response.json();
+      console.log('Column created successfully:', newColumn);
       
       setBoard({
         ...board,
@@ -201,9 +217,10 @@ const Board = ({ boardId }: BoardProps) => {
       setIsAddingColumn(false);
     } catch (err) {
       console.error('Error adding column:', err);
+      alert(err instanceof Error ? err.message : 'Failed to create column');
     }
   };
-
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -273,13 +290,28 @@ const Board = ({ boardId }: BoardProps) => {
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex space-x-4 overflow-x-auto pb-4">
-          {board.columns.map((column, index) => (
-            <Column 
-              key={column._id} 
-              column={column} 
-              index={index} 
-            />
-          ))}
+          {board.columns.map((column, index) => {
+            // Ensure column has all required properties
+            if (!column || !column._id) {
+              console.error('Invalid column data:', column);
+              return null;
+            }
+            
+            return (
+              <Column 
+                key={column._id.toString()} 
+                column={{
+                  ...column,
+                  _id: column._id.toString(), // Ensure ID is a string
+                  tasks: Array.isArray(column.tasks) ? column.tasks.map(task => ({
+                    ...task,
+                    _id: task._id.toString() // Ensure task IDs are strings
+                  })) : []
+                }}
+                index={index} 
+              />
+            );
+          })}
         </div>
       </DragDropContext>
     </div>

@@ -23,7 +23,8 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null }
 }
 
-export const dbConnect = async () => {
+// Change to default export
+const dbConnect = async () => {
   if (cached.conn) return cached.conn
 
   if (!cached.promise) {
@@ -36,3 +37,7 @@ export const dbConnect = async () => {
   cached.conn = await cached.promise
   return cached.conn
 }
+
+// Export both as default and named export for backward compatibility
+export { dbConnect }
+export default dbConnect
