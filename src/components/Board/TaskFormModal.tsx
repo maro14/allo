@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { LabelSelector } from './LabelSelector'
 import { PrioritySelector } from './PrioritySelector'
+import {  TaskType } from './Column'
 
 interface TaskFormModalProps {
   columnId: string
   isOpen: boolean
   onClose: () => void
-  onTaskCreated: () => void
+  onTaskCreated: (newTask: TaskType) => void
 }
 
 export const TaskFormModal = ({ 
@@ -42,12 +43,13 @@ export const TaskFormModal = ({
     })
     
     if (response.ok) {
+      const newTask = await response.json()
       setTitle('')
       setDescription('')
       setSubtasks([])
       setLabels([])
       setPriority('medium')
-      onTaskCreated()
+      onTaskCreated(newTask)
       onClose()
     }
   }

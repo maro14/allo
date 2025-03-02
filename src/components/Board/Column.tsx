@@ -1,28 +1,50 @@
-import { useState } from 'react'
-import { Draggable, Droppable } from 'react-beautiful-dnd'
-import { Task } from './Task'
-import { TaskFormModal } from './TaskFormModal'
-import { Button } from '../ui/Button'
-import { PlusIcon } from '@heroicons/react/24/outline'
+import { useState } from 'react';
+import { Draggable, Droppable } from 'react-beautiful-dnd';
+import { Task } from './Task';
+import { TaskFormModal } from './TaskFormModal';
+import { Button } from '../ui/Button';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
-interface ColumnProps {
-  column: {
-    _id: string;
-    title: string;
-    tasks: any[];
-  };
-  index: number;
+export interface TaskType {
+  _id: string;
+  title: string;
+  description?: string;
+  priority?: string;
+  labels?: string[];
+  subtasks?: any[];
 }
 
-export const Column = ({ column, index }: ColumnProps) => {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  
-  // Ensure column has required properties
+interface ColumnType {
+  _id: string;
+  title: string;
+  tasks: TaskType[];
+}
+
+interface ColumnProps {
+  column: ColumnType;
+  index: number;
+  onTaskCreated?: (columnId: string, newTask: TaskType) => void;
+}
+
+export const Column = ({ column, index, onTaskCreated }: ColumnProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   if (!column || !column._id) {
     console.error('Invalid column data:', column);
     return <div className="bg-red-100 p-4 rounded">Invalid column data</div>;
   }
-  
+
+  const handleTaskCreated = (newTask: TaskType) => {
+    // Propagate the new task to the parent (Board) if a callback is provided.
+    if (onTaskCreated) {
+      onTaskCreated(column._id, newTask);
+    } else {
+      // Otherwise, you might choose to re-fetch board data.
+      console.log('New task created, but no onTaskCreated callback provided');
+    }
+    setIsModalOpen(false);
+  };
+
   return (
     <Draggable draggableId={column._id.toString()} index={index}>
       {(provided) => (
@@ -31,7 +53,7 @@ export const Column = ({ column, index }: ColumnProps) => {
           ref={provided.innerRef}
           className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg shadow-sm w-72"
         >
-          <div 
+          <div
             {...provided.dragHandleProps}
             className="flex justify-between items-center mb-4"
           >
@@ -41,7 +63,7 @@ export const Column = ({ column, index }: ColumnProps) => {
                 {column.tasks?.length || 0}
               </span>
             </h3>
-            <Button 
+            <Button
               onClick={() => setIsModalOpen(true)}
               size="sm"
               className="flex items-center"
@@ -50,17 +72,25 @@ export const Column = ({ column, index }: ColumnProps) => {
               Add
             </Button>
           </div>
-          
-          <Droppable droppableId={column._id.toString()} type="task">
+
+          <Droppable
+            droppableId={column._id.toString()}
+            type="task"
+            isDropDisabled={false}
+            isCombineEnabled={false}
+            ignoreContainerClipping={false}
+          >
             {(provided, snapshot) => (
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
                 className={`space-y-2 min-h-[200px] transition-colors ${
-                  snapshot.isDraggingOver ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                  snapshot.isDraggingOver
+                    ? 'bg-blue-50 dark:bg-blue-900/20'
+                    : ''
                 } rounded p-1`}
               >
-                {!column.tasks || column.tasks.length === 0 ? (
+                {(!column.tasks || column.tasks.length === 0) ? (
                   <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm italic">
                     No tasks yet
                   </div>
@@ -73,20 +103,17 @@ export const Column = ({ column, index }: ColumnProps) => {
               </div>
             )}
           </Droppable>
-          
+
           <TaskFormModal
             columnId={column._id}
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            onTaskCreated={() => {
-              setIsModalOpen(false);
-              // You might want to refresh the board here
-            }}
+            onTaskCreated={(newTask) => handleTaskCreated(newTask)}
           />
         </div>
       )}
     </Draggable>
-  )
-}
+  );
+};
 
-export default Column
+export default Column;

@@ -10,13 +10,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     await dbConnect()
     
-    // Force model registration before using it
-    const TaskModel = mongoose.models.Task || mongoose.model('Task', new mongoose.Schema({
+    // Force registration of all models before using them
+    const ColumnSchema = new mongoose.Schema({
+      title: { type: String, required: true },
+      tasks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
+      boardId: { type: mongoose.Schema.Types.ObjectId, ref: 'Board' }
+    });
+    
+    const TaskSchema = new mongoose.Schema({
       title: { type: String, required: true },
       description: String,
       columnId: { type: mongoose.Schema.Types.ObjectId, ref: 'Column' },
       position: Number
-    }))
+    });
+    
+    // Register models if they don't exist
+    const ColumnModel = mongoose.models.Column || mongoose.model('Column', ColumnSchema);
+    const TaskModel = mongoose.models.Task || mongoose.model('Task', TaskSchema);
     
     const { userId } = getAuth(req)
     const { id } = req.query
@@ -38,10 +48,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const board = await Board.findOne({ _id: id, userId })
         .populate({
           path: 'columns',
-          model: 'Column',
+          model: ColumnModel.modelName,
           populate: {
             path: 'tasks',
-            model: TaskModel.modelName // Use the model name from the registered model
+            model: TaskModel.modelName
           }
         });
       

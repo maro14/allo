@@ -18,6 +18,8 @@ export default function Document() {
       <body className="antialiased bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
         <Main />
         <NextScript />
+        {/* This div is the target for your modal portals */}
+        <div id="modal-root"></div>
       </body>
     </Html>
   );
