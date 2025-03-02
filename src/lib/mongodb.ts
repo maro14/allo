@@ -1,4 +1,4 @@
-import mongoose from 'mongoose'
+import  mongoose from 'mongoose'
 
 // Define a type for our cached connection
 interface MongooseCache {
@@ -36,5 +36,3 @@ export const dbConnect = async () => {
   cached.conn = await cached.promise
   return cached.conn
 }
-
-export default mongoose

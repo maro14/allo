@@ -1,5 +1,4 @@
 import { useRouter } from 'next/router'
-import { Navbar } from '../components/layout/Navbar'
 
 const NotFoundPage = () => {
   const router = useRouter()
