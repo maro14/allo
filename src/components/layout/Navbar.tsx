@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { useAuth, UserButton } from '@clerk/nextjs'
 import { Bars3Icon } from '@heroicons/react/24/solid'
+import { PencilSquareIcon } from '@heroicons/react/24/outline'
 import { useState } from 'react'
 
 export const Navbar = () => {
@@ -32,8 +33,8 @@ export const Navbar = () => {
           {isSignedIn ? (
             <>
               <Link href="/dashboard">
-                <span className="text-gray-700 dark:text-gray-300 hover:text-blue-500 
-                              transition-colors">
+                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all">
+                  <PencilSquareIcon className="h-4 w-4" />
                   Boards
                 </span>
               </Link>
@@ -64,9 +65,10 @@ export const Navbar = () => {
           {isSignedIn ? (
             <>
               <Link href="/dashboard">
-                <span className="block py-2 text-gray-700 dark:text-gray-300 
-                              hover:bg-gray-100 dark:hover:bg-gray-600 
-                              rounded-lg px-4">
+                <span className="flex items-center gap-2 py-2 text-gray-700 dark:text-gray-300 
+                              hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400
+                              rounded-lg px-4 transition-all">
+                  <PencilSquareIcon className="h-5 w-5" />
                   Boards
                 </span>
               </Link>
