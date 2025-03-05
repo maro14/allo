@@ -188,6 +188,26 @@ const Board = ({ boardId }: BoardProps) => {
       alert(err instanceof Error ? err.message : 'Failed to create column');
     }
   };
+  // After handleAddColumn function and before the loading check
+  
+  const handleTaskCreated = (columnId: string, newTask: Task) => {
+    if (!board) return;
+    
+    const updatedColumns = board.columns.map(column => {
+      if (column._id.toString() === columnId) {
+        return {
+          ...column,
+          tasks: [...column.tasks, newTask]
+        };
+      }
+      return column;
+    });
+    
+    setBoard({
+      ...board,
+      columns: updatedColumns
+    });
+  };
   
   if (loading) {
     return (
@@ -211,7 +231,6 @@ const Board = ({ boardId }: BoardProps) => {
   if (!board) {
     return <div>No board found</div>;
   }
-
   return (
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
@@ -247,7 +266,7 @@ const Board = ({ boardId }: BoardProps) => {
           droppableId="columns"
           direction="horizontal"
           type="column"
-          isDropDisabled={false} // <-- Explicitly set isDropDisabled to false
+          isCombineEnabled={false}
         >
           {(provided) => (
             <div
@@ -267,6 +286,7 @@ const Board = ({ boardId }: BoardProps) => {
                     }))
                   }}
                   index={index}
+                  onTaskCreated={handleTaskCreated}
                 />
               ))}
               {provided.placeholder}
@@ -274,7 +294,6 @@ const Board = ({ boardId }: BoardProps) => {
           )}
         </Droppable>
       </DragDropContext>
-
     </div>
   );
 };

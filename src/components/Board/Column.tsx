@@ -76,9 +76,6 @@ export const Column = ({ column, index, onTaskCreated }: ColumnProps) => {
           <Droppable
             droppableId={column._id.toString()}
             type="task"
-            isDropDisabled={false}
-            isCombineEnabled={false}
-            ignoreContainerClipping={false}
           >
             {(provided, snapshot) => (
               <div

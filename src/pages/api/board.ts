@@ -1,7 +1,7 @@
 import { getAuth } from '@clerk/nextjs/server'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import Board from '../../models/Board'
-import { dbConnect } from '../../lib/mongodb'
+import  dbConnect from '../../lib/mongodb'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await dbConnect()
