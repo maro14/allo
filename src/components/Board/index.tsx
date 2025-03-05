@@ -1,3 +1,4 @@
+//src/components/board.index.tsx
 import { useState, useEffect } from 'react';
 import { DragDropContext, DropResult, Droppable } from 'react-beautiful-dnd';
 import Column from './Column';

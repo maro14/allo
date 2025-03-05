@@ -1,3 +1,4 @@
+//src/components/Board/Column.tsx
 import { useState } from 'react';
 import { Draggable, Droppable } from 'react-beautiful-dnd';
 import { Task } from './Task';

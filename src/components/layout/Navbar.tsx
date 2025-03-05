@@ -1,3 +1,4 @@
+//src/components/Navbar.tsx
 import Link from 'next/link'
 import { useAuth, UserButton } from '@clerk/nextjs'
 import { Bars3Icon } from '@heroicons/react/24/solid'

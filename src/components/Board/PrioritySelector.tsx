@@ -1,3 +1,4 @@
+//src/components/PrioritySelector.tsx
 interface PrioritySelectorProps {
     priority: string
     onChange: (priority: string) => void

@@ -1,33 +1,49 @@
+//src/components/ui/Button.tsx
 import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/utils';
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none",
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none transition-all duration-200",
   {
     variants: {
       variant: {
-        default: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm",
-        destructive: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
-        outline: "border border-gray-300 bg-transparent hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800",
+        default: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow",
+        destructive: "bg-red-500 text-white hover:bg-red-600 shadow-sm hover:shadow",
+        outline: "border border-gray-300 bg-transparent hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 dark:text-gray-100",
         secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600",
-        ghost: "bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800",
-        link: "text-blue-600 underline-offset-4 hover:underline bg-transparent",
+        ghost: "bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-gray-100",
+        link: "text-blue-600 underline-offset-4 hover:underline bg-transparent dark:text-blue-400",
+        success: "bg-green-600 text-white hover:bg-green-700 shadow-sm hover:shadow",
+        warning: "bg-amber-500 text-white hover:bg-amber-600 shadow-sm hover:shadow",
+        info: "bg-cyan-600 text-white hover:bg-cyan-700 shadow-sm hover:shadow",
       },
       size: {
         default: "h-10 py-2 px-4",
         sm: "h-8 px-3 text-xs",
         lg: "h-12 px-6 text-base",
+        xl: "h-14 px-8 text-lg",
         icon: "h-10 w-10 p-2",
+        "icon-sm": "h-8 w-8 p-1.5",
+        "icon-lg": "h-12 w-12 p-2.5",
       },
       fullWidth: {
         true: "w-full",
+      },
+      rounded: {
+        default: "rounded-md",
+        full: "rounded-full",
+        none: "rounded-none",
+        sm: "rounded-sm",
+        lg: "rounded-lg",
+        xl: "rounded-xl",
       }
     },
     defaultVariants: {
       variant: "default",
       size: "default",
       fullWidth: false,
+      rounded: "default",
     },
   }
 );
@@ -38,13 +54,26 @@ export interface ButtonProps
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  loadingText?: string;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, fullWidth, isLoading, leftIcon, rightIcon, children, ...props }, ref) => {
+  ({ 
+    className, 
+    variant, 
+    size, 
+    fullWidth, 
+    rounded,
+    isLoading, 
+    leftIcon, 
+    rightIcon, 
+    loadingText,
+    children, 
+    ...props 
+  }, ref) => {
     return (
       <button
-        className={cn(buttonVariants({ variant, size, fullWidth }), className)}
+        className={cn(buttonVariants({ variant, size, fullWidth, rounded }), className)}
         ref={ref}
         disabled={isLoading || props.disabled}
         {...props}
@@ -73,7 +102,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         
         {!isLoading && leftIcon && <span className="mr-2">{leftIcon}</span>}
-        {children}
+        {isLoading && loadingText ? loadingText : children}
         {!isLoading && rightIcon && <span className="ml-2">{rightIcon}</span>}
       </button>
     );

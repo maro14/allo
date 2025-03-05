@@ -1,3 +1,4 @@
+//src/pages/dashboard.tsx
 import { useAuth, useUser } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
