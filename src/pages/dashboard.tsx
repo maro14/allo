@@ -47,8 +47,8 @@ const Dashboard = () => {
   }
 
   return (
-    <DashboardLayout title="Dashboard" username={user?.firstName || 'User'}>
-      <div className="p-6 md:p-8 max-w-7xl mx-auto">
+    <DashboardLayout title="Dashboard" username={user?.firstName || 'User'} gridLayout={false}>
+      <div className="p-4 md:p-6 max-w-full mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-4 md:mb-0 mr-3">
             Your Boards
@@ -90,25 +90,24 @@ const Dashboard = () => {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex flex-col space-y-4">
             {Array.isArray(boards) && boards.map((board, index) => (
               <Link href={`/board/${board._id}`} key={board._id}>
-                <div className={`bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 dark:border-gray-700 cursor-pointer h-full flex flex-col transform hover:-translate-y-1 ${index === 0 ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}>
-                  <div className="flex justify-between items-start mb-2">
-                    <h2 className="text-xl font-semibold text-gray-800 dark:text-white">{board.name}</h2>
-                    <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded-full">
-                      Board
-                    </span>
+                <div className={`bg-gray-800 p-5 rounded-lg border border-gray-700 cursor-pointer flex justify-between items-center transform hover:-translate-y-1 transition-all duration-300 ${index === 0 ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}>
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">{board.name}</h2>
+                    <div className="flex items-center text-sm text-gray-400 mt-2">
+                      <CalendarIcon className="h-4 w-4 mr-1" />
+                      {new Date(board.createdAt || Date.now()).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </div>
                   </div>
-                  <div className="flex-grow"></div>
-                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                    <CalendarIcon className="h-4 w-4 mr-1" />
-                    {new Date(board.createdAt || Date.now()).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
-                  </div>
+                  <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full">
+                    Board
+                  </span>
                 </div>
               </Link>
             ))}

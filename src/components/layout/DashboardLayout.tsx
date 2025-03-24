@@ -40,7 +40,7 @@ export const DashboardLayout = ({
         <title>{title} | Allo</title>
         {description && <meta name="description" content={description} />}
       </Head>
-      <div className={`max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-20 ${className}`}>
+      <div className={`max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-16 ${className}`}>
         <div className="mb-6 md:mb-8 flex flex-col md:flex-row justify-between md:items-center">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white flex items-center">
