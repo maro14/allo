@@ -19,7 +19,8 @@ export const Modal = ({
   maxWidth = 'max-w-2xl',
   position = { x: 0, y: 0 },
   dragHandleRef,
-  closeOnBackdropClick = true
+  closeOnBackdropClick = true,
+  className = ''  // Add this new prop
 }: ModalProps) => {
   const modalRef = useRef<HTMLDivElement>(null)
   const [modalPosition, setModalPosition] = useState(position)
@@ -121,18 +122,18 @@ export const Modal = ({
     >
       <div 
         ref={modalRef}
-        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl ${maxWidth} w-full transition-all duration-200 ease-in-out opacity-100 scale-100`}
+        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl ${maxWidth} w-full transition-all duration-200 ease-in-out opacity-100 scale-100 overflow-auto max-h-[90vh] ${className}`}
         style={modalStyle}
         tabIndex={-1}
       >
-        <div className="relative">
+        <div className="relative p-6">  {/* Add padding here */}
           <button 
             onClick={onClose} 
-            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-300"
+            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label="Close modal"
           >
             <svg 
-              className="w-6 h-6" 
+              className="w-5 h-5" 
               fill="none" 
               viewBox="0 0 24 24" 
               stroke="currentColor"

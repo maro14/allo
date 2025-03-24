@@ -35,6 +35,9 @@ export const Column = ({ column, index, onTaskCreated }: ColumnProps) => {
     return <div className="bg-red-100 p-4 rounded">Invalid column data</div>;
   }
 
+  // Ensure we have a string ID for draggable/droppable
+  const columnId = column._id ? column._id.toString() : `column-${index}`;
+
   const handleTaskCreated = (newTask: TaskType) => {
     // Propagate the new task to the parent (Board) if a callback is provided.
     if (onTaskCreated) {
@@ -47,7 +50,7 @@ export const Column = ({ column, index, onTaskCreated }: ColumnProps) => {
   };
 
   return (
-    <Draggable draggableId={column._id.toString()} index={index}>
+    <Draggable draggableId={columnId} index={index}>
       {(provided) => (
         <div
           {...provided.draggableProps}
@@ -73,7 +76,7 @@ export const Column = ({ column, index, onTaskCreated }: ColumnProps) => {
           </div>
 
           <Droppable
-            droppableId={column._id.toString()}
+            droppableId={columnId}
             type="task"
           >
             {(provided, snapshot) => (
@@ -92,7 +95,11 @@ export const Column = ({ column, index, onTaskCreated }: ColumnProps) => {
                   </div>
                 ) : (
                   column.tasks.map((task, taskIndex) => (
-                    <Task key={task._id} task={task} index={taskIndex} />
+                    <Task 
+                      key={task._id ? task._id.toString() : `task-${columnId}-${taskIndex}`} 
+                      task={task} 
+                      index={taskIndex} 
+                    />
                   ))
                 )}
                 {provided.placeholder}

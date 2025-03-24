@@ -36,8 +36,11 @@ export const Task = ({ task, index, onUpdate, onDelete }: TaskProps) => {
     setIsModalOpen(false);
   }
 
+  // Ensure we have a string ID
+  const taskId = task._id ? task._id.toString() : `task-${index}`;
+  
   return (
-    <Draggable draggableId={task._id.toString()} index={index}>
+    <Draggable draggableId={taskId} index={index}>
       {(provided) => (
         <div
           ref={provided.innerRef}

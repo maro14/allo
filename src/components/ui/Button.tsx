@@ -55,6 +55,8 @@ export interface ButtonProps
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   loadingText?: string;
+  iconOnly?: boolean; // New prop for icon-only buttons
+  icon?: React.ReactNode; // New prop for a centered icon
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -67,13 +69,22 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     isLoading, 
     leftIcon, 
     rightIcon, 
+    icon, // New prop
+    iconOnly, // New prop
     loadingText,
     children, 
     ...props 
   }, ref) => {
+    // Automatically set size to icon if iconOnly is true and no size is specified
+    const buttonSize = iconOnly && !size ? 'icon' : size;
+    
     return (
       <button
-        className={cn(buttonVariants({ variant, size, fullWidth, rounded }), className)}
+        className={cn(
+          buttonVariants({ variant, size: buttonSize, fullWidth, rounded }), 
+          iconOnly && "p-0", // Remove padding for icon-only buttons
+          className
+        )}
         ref={ref}
         disabled={isLoading || props.disabled}
         {...props}
@@ -102,7 +113,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         
         {!isLoading && leftIcon && <span className="mr-2">{leftIcon}</span>}
-        {isLoading && loadingText ? loadingText : children}
+        {!isLoading && icon && <span>{icon}</span>}
+        {!iconOnly && (isLoading && loadingText ? loadingText : children)}
         {!isLoading && rightIcon && <span className="ml-2">{rightIcon}</span>}
       </button>
     );

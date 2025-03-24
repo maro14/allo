@@ -1,24 +1,16 @@
-import { ClerkProvider, SignedIn, SignedOut } from '@clerk/nextjs'
-import '../styles/globals.css'
-import type { AppProps } from 'next/app'
-import { Navbar } from '@/components/layout/Navbar'
+import { ClerkAuthProvider } from '../lib/clerk';
+import { ReactQueryProvider } from '../lib/react-query';
+import '../styles/globals.css';
+import type { AppProps } from 'next/app';
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || ''}>
-      <Navbar />
-      <main>
-        <SignedIn>
-          {/* Render content only for signed in users */}
-          <Component {...pageProps} />
-        </SignedIn>
-        <SignedOut>
-          {/* Render content only for signed out users */}
-          <Component {...pageProps} />
-        </SignedOut>
-      </main>
-    </ClerkProvider>
-  )
+    <ClerkAuthProvider>
+      <ReactQueryProvider>
+        <Component {...pageProps} />
+      </ReactQueryProvider>
+    </ClerkAuthProvider>
+  );
 }
 
-export default MyApp
+export default MyApp;
