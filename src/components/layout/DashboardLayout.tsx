@@ -2,6 +2,7 @@
 import { ReactNode } from 'react'
 import { Button } from '../ui/Button'
 import Head from 'next/head'
+import { PlusIcon, UserIcon, HomeIcon } from '@heroicons/react/24/outline'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -39,11 +40,21 @@ export const DashboardLayout = ({
         <title>{title} | Allo</title>
         {description && <meta name="description" content={description} />}
       </Head>
-      <div className={`max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 ${className}`}>
+      <div className={`max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-20 ${className}`}>
         <div className="mb-6 md:mb-8 flex flex-col md:flex-row justify-between md:items-center">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white">
-              {username ? `Welcome, ${username}` : title}
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white flex items-center">
+              {username ? (
+                <>
+                  <UserIcon className="h-6 w-6 mr-2" />
+                  Welcome, {username}
+                </>
+              ) : (
+                <>
+                  <HomeIcon className="h-6 w-6 mr-2" />
+                  {title}
+                </>
+              )}
             </h1>
             {description && (
               <p className="mt-2 text-gray-600 dark:text-gray-300 text-sm md:text-base">
@@ -56,8 +67,9 @@ export const DashboardLayout = ({
               variant="default"
               onClick={onCreate}
               isLoading={isCreating}
-              className="mt-4 md:mt-0 md:ml-4"
+              className="mt-4 md:mt-0 md:ml-4 flex items-center"
             >
+              <PlusIcon className="h-5 w-5 mr-1" />
               {createButtonText}
             </Button>
           )}

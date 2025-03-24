@@ -7,7 +7,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || ''}>
       <Navbar />
-      <main className="container mx-auto pt-4">
+      <main>
         <SignedIn>
           {/* Render content only for signed in users */}
           <Component {...pageProps} />

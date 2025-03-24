@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { Modal } from '../ui/Modal'
 import { LabelSelector } from './LabelSelector'
 import { PrioritySelector } from './PrioritySelector'
-import {  TaskType } from './Column'
+import { TaskType } from './Column'
+import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface TaskFormModalProps {
   columnId: string
@@ -56,98 +57,109 @@ export const TaskFormModal = ({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <h2 className="text-xl font-bold mb-4">New Task</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal isOpen={isOpen} onClose={onClose} className="max-w-md">
+      <h2 className="text-lg font-medium mb-4 p-2">Create a new task</h2>
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Title */}
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Task title"
-          className="w-full p-2 border rounded"
-          required
-        />
+        <div>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Task title"
+            className="w-full p-2 border-0 border-b border-gray-200 dark:border-gray-700 bg-transparent focus:outline-none focus:ring-0 focus:border-blue-500 text-gray-800 dark:text-white placeholder-gray-400"
+            required
+          />
+        </div>
         
         {/* Description */}
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Description"
-          className="w-full p-2 border rounded"
-          rows={3}
-        />
+        <div>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Description"
+            className="w-full p-2 border-0 border-b border-gray-200 dark:border-gray-700 bg-transparent focus:outline-none focus:ring-0 focus:border-blue-500 text-gray-800 dark:text-white placeholder-gray-400 resize-none"
+            rows={2}
+          />
+        </div>
         
         {/* Subtasks */}
-        <div>
-          <h3 className="font-semibold mb-2">Subtasks</h3>
-          {subtasks.map((subtask, index) => (
-            <div key={index} className="flex gap-2 mb-2">
+        <div className="pt-2">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 p-1.5">Subtasks</h3>
+          <div className="space-y-2">
+            {subtasks.map((subtask, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={subtask}
+                  onChange={(e) => {
+                    const newSubtasks = [...subtasks]
+                    newSubtasks[index] = e.target.value
+                    setSubtasks(newSubtasks)
+                  }}
+                  className="flex-1 p-2 border-0 border-b border-gray-200 dark:border-gray-700 bg-transparent focus:outline-none focus:ring-0 focus:border-blue-500 text-gray-800 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSubtasks = subtasks.filter((_, i) => i !== index)
+                    setSubtasks(newSubtasks)
+                  }}
+                  className="text-gray-400 hover:text-red-500 p-1"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            
+            <div className="flex items-center gap-2 mt-2">
               <input
                 type="text"
-                value={subtask}
-                onChange={(e) => {
-                  const newSubtasks = [...subtasks]
-                  newSubtasks[index] = e.target.value
-                  setSubtasks(newSubtasks)
-                }}
-                className="flex-1 p-1 border rounded"
+                value={newSubtask}
+                onChange={(e) => setNewSubtask(e.target.value)}
+                placeholder="Add a subtask"
+                className="flex-1 p-2 border-0 border-b border-gray-200 dark:border-gray-700 bg-transparent focus:outline-none focus:ring-0 focus:border-blue-500 text-gray-800 dark:text-white placeholder-gray-400"
               />
               <button
+                type="button"
                 onClick={() => {
-                  const newSubtasks = subtasks.filter((_, i) => i !== index)
-                  setSubtasks(newSubtasks)
+                  if (newSubtask.trim()) {
+                    setSubtasks([...subtasks, newSubtask])
+                    setNewSubtask('')
+                  }
                 }}
-                className="bg-red-500 text-white px-2 py-1 rounded"
+                className="text-blue-500 hover:text-blue-600 p-1"
               >
-                Remove
+                <PlusIcon className="h-4 w-4" />
               </button>
             </div>
-          ))}
-          
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newSubtask}
-              onChange={(e) => setNewSubtask(e.target.value)}
-              placeholder="New subtask"
-              className="flex-1 p-1 border rounded"
-            />
-            <button
-              onClick={() => {
-                if (newSubtask.trim()) {
-                  setSubtasks([...subtasks, newSubtask])
-                  setNewSubtask('')
-                }
-              }}
-              className="bg-blue-500 text-white px-2 py-1 rounded"
-            >
-              Add Subtask
-            </button>
           </div>
         </div>
 
-        {/* Labels */}
-        <div>
-          <h3 className="font-semibold mb-2">Labels</h3>
-          <LabelSelector 
-            selectedLabels={labels}
-            onChange={setLabels}
-          />
-        </div>
+        {/* Two-column layout for Labels and Priority */}
+        <div className="grid grid-cols-2 gap-4 pt-2">
+          {/* Labels */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Labels</h3>
+            <LabelSelector 
+              selectedLabels={labels}
+              onChange={setLabels}
+            />
+          </div>
 
-        {/* Priority */}
-        <div>
-          <h3 className="font-semibold mb-2">Priority</h3>
-          <PrioritySelector 
-            priority={priority}
-            onChange={setPriority}
-          />
+          {/* Priority */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Priority</h3>
+            <PrioritySelector 
+              priority={priority}
+              onChange={setPriority}
+            />
+          </div>
         </div>
 
         <button 
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded w-full"
+          className="mt-6 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full w-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
           Create Task
         </button>

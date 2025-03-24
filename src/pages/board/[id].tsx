@@ -39,7 +39,7 @@ const BoardPage = () => {
 
   if (error) {
     return (
-      <div className="container mx-auto p-4">
+      <div className="max-w-7xl mx-auto p-4">
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           <p>Error: {error}</p>
           <Button 
@@ -60,8 +60,8 @@ const BoardPage = () => {
         <title>{loading ? 'Loading Board...' : boardName} | Allo</title>
       </Head>
       
-      <div className="container mx-auto p-4">
-        <div className="mb-6">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="mb-6 max-w-7xl mx-auto">
           <Button 
             variant="ghost" 
             onClick={() => router.push('/dashboard')}
@@ -70,6 +70,12 @@ const BoardPage = () => {
             <ArrowLeftIcon className="h-4 w-4 mr-1" />
             Back to Dashboard
           </Button>
+          
+          {!loading && boardName && (
+            <h1 className="text-2xl font-bold mt-2 text-gray-800 dark:text-white">
+              {boardName}
+            </h1>
+          )}
         </div>
         
         {typeof id === 'string' ? (

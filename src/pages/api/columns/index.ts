@@ -13,16 +13,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Get boardId from both query and body to support different request types
     const boardId = req.query.boardId || req.body.boardId
     
+    // Good authentication check
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' })
     }
     
-    // Validate boardId
+    // Good validation for boardId
     if (!boardId || typeof boardId !== 'string' || !mongoose.Types.ObjectId.isValid(boardId)) {
       return res.status(400).json({ success: false, error: 'Invalid board ID', receivedId: boardId })
     }
     
-    // Verify board exists and belongs to user
+    // Good ownership verification
     const board = await Board.findOne({ _id: boardId, userId })
     if (!board) {
       return res.status(404).json({ success: false, error: 'Board not found' })
@@ -43,6 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       const position = highestPositionColumn ? highestPositionColumn.position + 1 : 0;
       
+      // Consider adding a transaction here for atomicity
       const newColumn = new Column({ 
         title, 
         boardId,
