@@ -39,6 +39,8 @@ export const Column = ({ column, index, onTaskCreated }: ColumnProps) => {
   const columnId = column._id ? column._id.toString() : `column-${index}`;
 
   const handleTaskCreated = (newTask: TaskType) => {
+    console.log('New task created:', newTask);
+    
     // Propagate the new task to the parent (Board) if a callback is provided.
     if (onTaskCreated) {
       onTaskCreated(column._id, newTask);
@@ -111,7 +113,7 @@ export const Column = ({ column, index, onTaskCreated }: ColumnProps) => {
             columnId={column._id}
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            onTaskCreated={(newTask) => handleTaskCreated(newTask)}
+            onTaskCreated={handleTaskCreated}
           />
         </div>
       )}

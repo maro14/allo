@@ -49,7 +49,11 @@ const Board = ({ boardId }: BoardProps) => {
         }
         
         const data = await response.json();
-        setBoard(data);
+        // Ensure board has columns array even if API doesn't provide it
+        if (!data.data.columns) {
+          data.data.columns = [];
+        }
+        setBoard(data.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -177,10 +181,19 @@ const Board = ({ boardId }: BoardProps) => {
         throw new Error(errorData.error || `Failed to create column (${response.status})`);
       }
       
-      const newColumn = await response.json();
-      console.log('Column created successfully:', newColumn);
+      const result = await response.json();
+      console.log('Column created successfully:', result);
       
-      setBoard({ ...board, columns: [...board.columns, { ...newColumn, tasks: [] }] });
+      // Make sure we're adding the column with the correct structure
+      const newColumn = {
+        ...result.data,
+        tasks: [] // Ensure tasks is initialized as an empty array
+      };
+      
+      setBoard({ 
+        ...board, 
+        columns: [...board.columns, newColumn] 
+      });
       
       setNewColumnTitle('');
       setIsAddingColumn(false);
@@ -189,10 +202,11 @@ const Board = ({ boardId }: BoardProps) => {
       alert(err instanceof Error ? err.message : 'Failed to create column');
     }
   };
-  // After handleAddColumn function and before the loading check
   
   const handleTaskCreated = (columnId: string, newTask: Task) => {
     if (!board) return;
+    
+    console.log('Task created in column:', columnId, 'Task:', newTask);
     
     const updatedColumns = board.columns.map(column => {
       if (column._id.toString() === columnId) {
@@ -210,90 +224,83 @@ const Board = ({ boardId }: BoardProps) => {
     });
   };
   
+  // Render loading state
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <div className="flex justify-center items-center h-screen">Loading board...</div>;
   }
 
+  // Render error state
   if (error) {
-    return (
-      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-        <p>Error: {error}</p>
-        <Button variant="outline" onClick={() => window.location.reload()} className="mt-2">
-          Try Again
-        </Button>
-      </div>
-    );
+    return <div className="text-red-500">Error: {error}</div>;
   }
 
+  // Render empty state if no board
   if (!board) {
-    return <div>No board found</div>;
+    return <div>Board not found</div>;
   }
+
   return (
     <div className="p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{board.name}</h1>
-        <Button onClick={() => setIsAddingColumn(true)} className="flex items-center" size="sm">
-          <PlusIcon className="h-4 w-4 mr-1" />
-          Add Column
-        </Button>
-      </div>
-
-      {isAddingColumn && (
-        <form onSubmit={handleAddColumn} className="mb-6 flex items-center">
-          <input
-            type="text"
-            value={newColumnTitle}
-            onChange={(e) => setNewColumnTitle(e.target.value)}
-            placeholder="Column title"
-            className="p-2 border rounded mr-2 flex-grow"
-            autoFocus
-          />
-          <Button type="submit" size="sm">Add</Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => {
-              setIsAddingColumn(false);
-              setNewColumnTitle('');
-            }} className="ml-2">
-            Cancel
-          </Button>
-        </form>
-      )}
-
+      <h1 className="text-2xl font-bold mb-4">{board.name}</h1>
+      
       <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable
-          droppableId="columns"
-          direction="horizontal"
-          type="column"
-          isCombineEnabled={false}
-        >
-          {(provided) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className="flex space-x-4 overflow-x-auto pb-4"
-            >
-              {board.columns.map((column, index) => (
-                <Column
-                  key={column._id.toString()}
-                  column={{
-                    ...column,
-                    _id: column._id.toString(),
-                    tasks: column.tasks.map((task) => ({
-                      ...task,
-                      _id: task._id.toString()
-                    }))
-                  }}
-                  index={index}
-                  onTaskCreated={handleTaskCreated}
+        <div className="flex space-x-4 overflow-x-auto pb-4">
+          <Droppable droppableId="all-columns" direction="horizontal" type="column">
+            {(provided) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="flex space-x-4"
+              >
+                {Array.isArray(board.columns) ? board.columns.map((column, index) => (
+                  <Column
+                    key={column._id}
+                    column={column}
+                    index={index}
+                    boardId={boardId}
+                    onTaskCreated={handleTaskCreated}
+                  />
+                )) : null}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+          
+          {/* Add column form */}
+          <div className="flex-shrink-0 w-80">
+            {!isAddingColumn ? (
+              <Button onClick={() => setIsAddingColumn(true)} className="flex items-center w-full h-12 justify-center" variant="outline">
+                <PlusIcon className="h-4 w-4 mr-1" />
+                Add Column
+              </Button>
+            ) : (
+              <form onSubmit={handleAddColumn} className="flex flex-col">
+                <input
+                  type="text"
+                  value={newColumnTitle}
+                  onChange={(e) => setNewColumnTitle(e.target.value)}
+                  placeholder="Column title"
+                  className="p-2 border rounded mb-2"
+                  autoFocus
                 />
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
+                <div className="flex space-x-2">
+                  <Button type="submit" size="sm">Add</Button>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      setIsAddingColumn(false);
+                      setNewColumnTitle('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
       </DragDropContext>
     </div>
   );

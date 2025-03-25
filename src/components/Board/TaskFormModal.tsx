@@ -31,28 +31,40 @@ export const TaskFormModal = ({
     
     const formattedSubtasks = subtasks.map(title => ({ title }))
     
-    const response = await fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        title, 
-        description, 
-        columnId,
-        subtasks: formattedSubtasks,
-        labels,
-        priority
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          title, 
+          description, 
+          columnId,
+          subtasks: formattedSubtasks,
+          labels,
+          priority
+        })
       })
-    })
-    
-    if (response.ok) {
-      const newTask = await response.json()
-      setTitle('')
-      setDescription('')
-      setSubtasks([])
-      setLabels([])
-      setPriority('medium')
-      onTaskCreated(newTask)
-      onClose()
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to create task (${response.status})`);
+      }
+      
+      const result = await response.json();
+      
+      // Make sure we're passing the correct task structure to the parent component
+      if (result.success && result.data) {
+        setTitle('')
+        setDescription('')
+        setSubtasks([])
+        setLabels([])
+        setPriority('medium')
+        onTaskCreated(result.data)
+        onClose()
+      }
+    } catch (err) {
+      console.error('Error creating task:', err);
+      alert(err instanceof Error ? err.message : 'Failed to create task');
     }
   }
 
