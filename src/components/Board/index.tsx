@@ -4,6 +4,7 @@ import { DragDropContext, DropResult, Droppable } from 'react-beautiful-dnd';
 import Column from './Column';
 import { Button } from '../ui/Button';
 import { PlusIcon } from '@heroicons/react/24/outline';
+import { LoadingSpinnerBoard } from './LoadingSpinnerBoard';
 
 interface Task {
   _id: string;
@@ -35,6 +36,8 @@ const Board = ({ boardId }: BoardProps) => {
   const [error, setError] = useState<string | null>(null);
   const [newColumnTitle, setNewColumnTitle] = useState('');
   const [isAddingColumn, setIsAddingColumn] = useState(false);
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+  const [editingColumnTitle, setEditingColumnTitle] = useState('');
 
   useEffect(() => {
     if (!boardId) return;
@@ -224,9 +227,86 @@ const Board = ({ boardId }: BoardProps) => {
     });
   };
   
+  const handleDeleteColumn = async (columnId: string) => {
+    if (!board) return;
+    
+    if (!confirm('Are you sure you want to delete this column and all its tasks?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/columns`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ columnId, boardId })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete column');
+      }
+      
+      // Update board state by removing the deleted column
+      const updatedColumns = board.columns.filter(column => column._id !== columnId);
+      setBoard({
+        ...board,
+        columns: updatedColumns
+      });
+      
+    } catch (err) {
+      console.error('Error deleting column:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete column');
+    }
+  };
+  
+  const handleEditColumn = (columnId: string, currentTitle: string) => {
+    setEditingColumnId(columnId);
+    setEditingColumnTitle(currentTitle);
+  };
+  
+  const handleUpdateColumnTitle = async (columnId: string) => {
+    if (!board || !editingColumnTitle.trim()) return;
+    
+    try {
+      const response = await fetch(`/api/columns`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          columnId, 
+          boardId, 
+          title: editingColumnTitle.trim() 
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update column title');
+      }
+      
+      // Update board state with the new column title
+      const updatedColumns = board.columns.map(column => {
+        if (column._id === columnId) {
+          return { ...column, title: editingColumnTitle.trim() };
+        }
+        return column;
+      });
+      
+      setBoard({
+        ...board,
+        columns: updatedColumns
+      });
+      
+      // Reset editing state
+      setEditingColumnId(null);
+      setEditingColumnTitle('');
+      
+    } catch (err) {
+      console.error('Error updating column title:', err);
+      alert(err instanceof Error ? err.message : 'Failed to update column title');
+    }
+  };
+
   // Render loading state
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading board...</div>;
+    return <LoadingSpinnerBoard size="lg" message="Loading your board..." />;
   }
 
   // Render error state
@@ -259,6 +339,12 @@ const Board = ({ boardId }: BoardProps) => {
                     index={index}
                     boardId={boardId}
                     onTaskCreated={handleTaskCreated}
+                    onDeleteColumn={handleDeleteColumn}
+                    onEditColumn={handleEditColumn}
+                    onUpdateColumnTitle={handleUpdateColumnTitle}
+                    isEditing={editingColumnId === column._id}
+                    editingTitle={editingColumnId === column._id ? editingColumnTitle : ''}
+                    onEditingTitleChange={setEditingColumnTitle}
                   />
                 )) : null}
                 {provided.placeholder}

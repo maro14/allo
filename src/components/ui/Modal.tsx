@@ -10,6 +10,7 @@ interface ModalProps {
   position?: { x: number, y: number }
   dragHandleRef?: RefObject<HTMLDivElement | null>
   closeOnBackdropClick?: boolean
+  className?: string  // Fixed: Added proper type definition
 }
 
 export const Modal = ({
@@ -20,12 +21,19 @@ export const Modal = ({
   position = { x: 0, y: 0 },
   dragHandleRef,
   closeOnBackdropClick = true,
-  className = ''  // Add this new prop
+  className = ''
 }: ModalProps) => {
   const modalRef = useRef<HTMLDivElement>(null)
   const [modalPosition, setModalPosition] = useState(position)
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [mounted, setMounted] = useState(false)
+  
+  // Handle component mounting for SSR compatibility
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
   
   // Handle escape key press
   useEffect(() => {
@@ -53,10 +61,16 @@ export const Modal = ({
     
     const handleDragMove = (e: MouseEvent) => {
       if (isDragging) {
-        setModalPosition({
-          x: e.clientX - dragOffset.x,
-          y: e.clientY - dragOffset.y
-        })
+        // Ensure modal stays within viewport bounds
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+        const modalWidth = modalRef.current?.offsetWidth || 0
+        const modalHeight = modalRef.current?.offsetHeight || 0
+        
+        const x = Math.max(0, Math.min(e.clientX - dragOffset.x, viewportWidth - modalWidth))
+        const y = Math.max(0, Math.min(e.clientY - dragOffset.y, viewportHeight - modalHeight))
+        
+        setModalPosition({ x, y })
       }
     }
     
@@ -111,25 +125,30 @@ export const Modal = ({
     cursor: isDragging ? 'grabbing' : 'auto'
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
+  // Create portal for the modal
   return ReactDOM.createPortal(
     <div 
-      className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn"
       onClick={handleBackdropClick}
       aria-modal="true"
       role="dialog"
     >
       <div 
         ref={modalRef}
-        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl ${maxWidth} w-full transition-all duration-200 ease-in-out opacity-100 scale-100 overflow-auto max-h-[90vh] ${className}`}
+        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl ${maxWidth} w-full 
+                   transition-all duration-200 ease-in-out opacity-100 scale-100 
+                   overflow-auto max-h-[90vh] animate-scaleIn ${className}`}
         style={modalStyle}
         tabIndex={-1}
       >
-        <div className="relative p-6">  {/* Add padding here */}
+        <div className="relative p-6">
           <button 
             onClick={onClose} 
-            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 
+                     dark:text-gray-300 dark:hover:text-gray-100 p-1 rounded-full 
+                     hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label="Close modal"
           >
             <svg 
@@ -150,6 +169,6 @@ export const Modal = ({
         </div>
       </div>
     </div>,
-    document.getElementById('modal-root')!
+    document.getElementById('modal-root') || document.body
   )
 }

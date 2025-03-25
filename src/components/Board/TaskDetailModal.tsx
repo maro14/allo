@@ -1,76 +1,94 @@
-// src/components/TaskDetailModal.tsx
-import { useState, useEffect } from 'react'
+//src/components/Board/TaskDetailModal.tsx
+import { useState, useRef } from 'react'
 import { Modal } from '../ui/Modal'
-import { LabelSelector } from './LabelSelector'
-import { PrioritySelector } from './PrioritySelector'
-import { useDraggable } from '../../hooks/useDraggable'
+import { TaskType } from './Column'
+import { CheckIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 interface TaskDetailModalProps {
-  task: any
+  task: TaskType | null
   isOpen: boolean
   onClose: () => void
-  onUpdate: (updatedTask: any) => void
-  onDelete: () => void
+  onDelete?: (taskId: string) => void
+  onUpdate?: (taskId: string, updatedTask: Partial<TaskType>) => void
 }
 
-export const TaskDetailModal = ({
-  task,
-  isOpen,
+export const TaskDetailModal = ({ 
+  task, 
+  isOpen, 
   onClose,
-  onUpdate,
-  onDelete
+  onDelete,
+  onUpdate
 }: TaskDetailModalProps) => {
-  // Task state management
-  const [title, setTitle] = useState(task.title)
-  const [description, setDescription] = useState(task.description)
-  const [subtasks, setSubtasks] = useState(task.subtasks || [])
-  const [labels, setLabels] = useState(task.labels || [])
-  const [priority, setPriority] = useState(task.priority || 'medium')
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedTitle, setEditedTitle] = useState('')
+  const [editedDescription, setEditedDescription] = useState('')
+  const [completedSubtasks, setCompletedSubtasks] = useState<string[]>([])
+  const modalHeaderRef = useRef<HTMLDivElement>(null)
 
-  // Draggable modal functionality
-  const { position, dragRef, handleMouseDown, resetPosition } = useDraggable()
-
-  // Reset position and drag operations when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      resetPosition()
+  // Initialize edit form when task changes or edit mode is activated
+  // This should be useEffect, not useState
+  useState(() => {
+    if (task) {
+      setEditedTitle(task.title)
+      setEditedDescription(task.description || '')
       
-      // Reset any ongoing drag operations from other libraries
-      const resetDragOperations = () => {
-        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-      }
-      setTimeout(resetDragOperations, 0)
+      // Initialize completed subtasks from task data if available
+      const completed = task.subtasks
+        ?.filter(subtask => subtask.completed)
+        .map(subtask => subtask._id) || []
+      setCompletedSubtasks(completed)
     }
-  }, [isOpen, resetPosition])
+})
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const updatedTask = { 
-      ...task, 
-      title, 
-      description,
-      subtasks,
-      labels,
-      priority
-    }
+  if (!task) return null
+
+  const handleSaveChanges = async () => {
+    if (!task || !onUpdate) return
     
-    const response = await fetch(`/api/tasks/${task._id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedTask)
-    })
-    
-    if (response.ok) {
-      onUpdate(updatedTask)
-      onClose()
+    try {
+      await onUpdate(task._id, {
+        title: editedTitle,
+        description: editedDescription
+      })
+      setIsEditing(false)
+    } catch (err) {
+      console.error('Failed to update task:', err)
     }
   }
 
-  const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete this task?')) {
-      await fetch(`/api/tasks/${task._id}`, { method: 'DELETE' })
-      onDelete()
-      onClose()
+  const handleDeleteTask = async () => {
+    if (!task || !onDelete) return
+    
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      try {
+        await onDelete(task._id)
+        onClose()
+      } catch (err) {
+        console.error('Failed to delete task:', err)
+      }
+    }
+  }
+
+  const toggleSubtask = async (subtaskId: string) => {
+    if (!task || !onUpdate) return
+    
+    const isCompleted = completedSubtasks.includes(subtaskId)
+    const newCompletedSubtasks = isCompleted
+      ? completedSubtasks.filter(id => id !== subtaskId)
+      : [...completedSubtasks, subtaskId]
+    
+    setCompletedSubtasks(newCompletedSubtasks)
+    
+    // Update subtasks in the task
+    const updatedSubtasks = task.subtasks?.map(subtask => ({
+      ...subtask,
+      completed: newCompletedSubtasks.includes(subtask._id)
+    }))
+    
+    try {
+      await onUpdate(task._id, { subtasks: updatedSubtasks })
+    } catch (err) {
+      console.error('Failed to update subtask status:', err)
     }
   }
 
@@ -78,158 +96,167 @@ export const TaskDetailModal = ({
     <Modal 
       isOpen={isOpen} 
       onClose={onClose}
-      position={position}
-      dragHandleRef={dragRef}
-      className="max-w-2xl"
+      maxWidth="max-w-lg"
+      dragHandleRef={modalHeaderRef}
     >
-      {/* Drag handle with improved styling */}
       <div 
-        ref={dragRef}
-        onMouseDown={handleMouseDown}
-        className="bg-gray-100 dark:bg-gray-800 p-2 cursor-move rounded-t-lg mb-4 text-center"
+        ref={modalHeaderRef} 
+        className="flex justify-between items-center mb-4 cursor-move"
       >
-        <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 mx-auto rounded-full" />
-      </div>
-
-      {/* Modal header with task title */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center">
-          Task Details
-        </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Edit task information and manage subtasks
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Title Input with improved styling */}
-        <div>
-          <label htmlFor="task-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Title
-          </label>
+        {isEditing ? (
           <input
-            id="task-title"
             type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white transition-colors"
+            value={editedTitle}
+            onChange={(e) => setEditedTitle(e.target.value)}
+            className="text-lg font-medium w-full p-1 border-b border-gray-300 dark:border-gray-600 
+                     bg-transparent focus:outline-none focus:border-blue-500"
+            placeholder="Task title"
           />
+        ) : (
+          <h2 className="text-lg font-medium text-gray-800 dark:text-white">{task.title}</h2>
+        )}
+        
+        <div className="flex items-center gap-2">
+          {isEditing ? (
+            <>
+              <button 
+                onClick={handleSaveChanges}
+                className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
+              >
+                <CheckIcon className="h-5 w-5" />
+              </button>
+              <button 
+                onClick={() => setIsEditing(false)}
+                className="p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              >
+                <PencilIcon className="h-5 w-5" />
+              </button>
+              {onDelete && (
+                <button 
+                  onClick={handleDeleteTask}
+                  className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                >
+                  <TrashIcon className="h-5 w-5" />
+                </button>
+              )}
+            </>
+          )}
         </div>
-
-        {/* Description Textarea with improved styling */}
-        <div>
-          <label htmlFor="task-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Description
-          </label>
+      </div>
+      
+      {/* Description */}
+      <div className="mb-6">
+        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</h3>
+        {isEditing ? (
           <textarea
-            id="task-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full p-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white transition-colors"
+            value={editedDescription}
+            onChange={(e) => setEditedDescription(e.target.value)}
+            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md 
+                     bg-transparent focus:outline-none focus:border-blue-500 resize-none"
             rows={3}
+            placeholder="Add a description..."
           />
-        </div>
-
-        {/* Two-column layout for priority and labels */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Priority Selector */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priority</h3>
-            <PrioritySelector 
-              priority={priority}
-              onChange={setPriority}
-            />
-          </div>
-
-          {/* Label Selector */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Labels</h3>
-            <LabelSelector 
-              selectedLabels={labels}
-              onChange={setLabels}
-            />
-          </div>
-        </div>
-
-        {/* Subtasks Section with improved styling */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Subtasks</h3>
-          <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-            {subtasks.map((subtask: any, index: number) => (
-              <div key={subtask._id || index} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-md border border-gray-200 dark:border-gray-700">
+        ) : (
+          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+            {task.description || "No description provided."}
+          </p>
+        )}
+      </div>
+      
+      {/* Subtasks */}
+      {task.subtasks && task.subtasks.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+            Subtasks ({completedSubtasks.length}/{task.subtasks.length})
+          </h3>
+          <div className="space-y-2">
+            {task.subtasks.map((subtask) => (
+              <div 
+                key={subtask._id} 
+                className="flex items-center p-2 bg-gray-50 dark:bg-gray-800/50 rounded-md"
+              >
                 <input
                   type="checkbox"
-                  checked={subtask.completed}
-                  onChange={(e) => {
-                    const newSubtasks = [...subtasks]
-                    newSubtasks[index].completed = e.target.checked
-                    setSubtasks(newSubtasks)
-                    fetch(`/api/tasks/${task._id}/subtasks`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ subtasks: newSubtasks })
-                    })
-                  }}
-                  className="h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                  checked={completedSubtasks.includes(subtask._id)}
+                  onChange={() => toggleSubtask(subtask._id)}
+                  className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 />
-                <input
-                  type="text"
-                  value={subtask.title}
-                  onChange={(e) => {
-                    const newSubtasks = [...subtasks]
-                    newSubtasks[index].title = e.target.value
-                    setSubtasks(newSubtasks)
-                  }}
-                  onBlur={() => {
-                    fetch(`/api/tasks/${task._id}/subtasks`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ subtasks })
-                    })
-                  }}
-                  className="flex-1 p-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => setSubtasks(subtasks.filter((_: any, i: number) => i !== index))}
-                  className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                <span 
+                  className={`ml-2 ${
+                    completedSubtasks.includes(subtask._id) 
+                      ? 'line-through text-gray-400 dark:text-gray-500' 
+                      : 'text-gray-700 dark:text-gray-300'
+                  }`}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
+                  {subtask.title}
+                </span>
               </div>
             ))}
-            <button
-              type="button"
-              onClick={() => setSubtasks([...subtasks, { title: '', completed: false }])}
-              className="mt-3 w-full flex items-center justify-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 p-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-              Add subtask
-            </button>
           </div>
         </div>
-
-        {/* Action Buttons with improved styling */}
-        <div className="flex gap-3 pt-6 border-t border-gray-200 dark:border-gray-700 mt-6">
-          <button 
-            type="submit"
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-md shadow-sm hover:shadow transition-all duration-200 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Save Changes
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="bg-white dark:bg-gray-800 text-red-600 dark:text-red-500 border border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 px-4 py-3 rounded-md shadow-sm hover:shadow transition-all duration-200 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-          >
-            Delete
-          </button>
+      )}
+      
+      {/* Labels */}
+      {task.labels && task.labels.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Labels</h3>
+          <div className="flex flex-wrap gap-2">
+            {task.labels.map((label) => {
+              // Find the label color from your LABELS constant
+              const labelColor = 
+                ['Design', 'Development', 'Testing', 'Urgent'].includes(label)
+                  ? {
+                      'Design': '#ef4444',
+                      'Development': '#2563eb',
+                      'Testing': '#16a34a',
+                      'Urgent': '#eab308'
+                    }[label]
+                  : '#9ca3af';
+                  
+              return (
+                <span 
+                  key={label}
+                  className="px-2 py-1 rounded-full text-xs text-white"
+                  style={{ backgroundColor: labelColor }}
+                >
+                  {label}
+                </span>
+              );
+            })}
+          </div>
         </div>
-      </form>
+      )}
+      
+      {/* Priority */}
+      {task.priority && (
+        <div>
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Priority</h3>
+          <div className="flex items-center">
+            <span 
+              className="h-3 w-3 rounded-full mr-2"
+              style={{ 
+                backgroundColor: 
+                  task.priority === 'urgent' ? '#ef4444' :
+                  task.priority === 'high' ? '#f97316' :
+                  task.priority === 'medium' ? '#eab308' :
+                  '#22c55e' // low
+              }}
+            />
+            <span className="text-gray-700 dark:text-gray-300 capitalize">
+              {task.priority}
+            </span>
+          </div>
+        </div>
+      )}
     </Modal>
   )
 }

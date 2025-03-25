@@ -40,7 +40,7 @@ export default function Home() {
               <>
                 <SignUpButton mode="modal">
                   <Button size="lg">
-                    Get Started
+                    Sign Up
                   </Button>
                 </SignUpButton>
                 <SignInButton mode="modal">

@@ -4,7 +4,7 @@ import { Draggable, Droppable } from 'react-beautiful-dnd';
 import { Task } from './Task';
 import { TaskFormModal } from './TaskFormModal';
 import { Button } from '../ui/Button';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 export interface TaskType {
   _id: string;
@@ -21,13 +21,30 @@ interface ColumnType {
   tasks: TaskType[];
 }
 
+// Add these to your ColumnProps interface
 interface ColumnProps {
   column: ColumnType;
   index: number;
   onTaskCreated?: (columnId: string, newTask: TaskType) => void;
+  onDeleteColumn?: (columnId: string) => void;
+  onEditColumn?: (columnId: string, currentTitle: string) => void;
+  onUpdateColumnTitle?: (columnId: string) => void;
+  isEditing?: boolean;
+  editingTitle?: string;
+  onEditingTitleChange?: (title: string) => void;
 }
 
-export const Column = ({ column, index, onTaskCreated }: ColumnProps) => {
+export const Column = ({ 
+  column, 
+  index, 
+  onTaskCreated,
+  onDeleteColumn,
+  onEditColumn,
+  onUpdateColumnTitle,
+  isEditing,
+  editingTitle,
+  onEditingTitleChange
+}: ColumnProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (!column || !column._id) {
@@ -51,64 +68,113 @@ export const Column = ({ column, index, onTaskCreated }: ColumnProps) => {
     setIsModalOpen(false);
   };
 
+  // Add this to handle form submission for editing
+  const handleSubmitEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onUpdateColumnTitle) {
+      onUpdateColumnTitle(column._id);
+    }
+  };
+
   return (
     <Draggable draggableId={columnId} index={index}>
       {(provided) => (
         <div
-          {...provided.draggableProps}
           ref={provided.innerRef}
-          className="bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg w-72"
+          {...provided.draggableProps}
+          className="bg-gray-100 dark:bg-gray-800 rounded-md w-80 flex-shrink-0 flex flex-col max-h-[calc(100vh-12rem)]"
         >
-          <div
+          {/* Column Header */}
+          <div 
             {...provided.dragHandleProps}
-            className="flex justify-between items-center p-3 border-b border-gray-200 dark:border-gray-700"
+            className="p-3 font-medium flex justify-between items-center bg-gray-200 dark:bg-gray-700 rounded-t-md"
           >
-            <h3 className="text-base font-medium text-gray-800 dark:text-white flex items-center">
-              {column.title}
-              <span className="ml-2 text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400">
-                {column.tasks?.length || 0}
-              </span>
-            </h3>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <PlusIcon className="h-4 w-4" />
-            </button>
+            {isEditing ? (
+              <form onSubmit={handleSubmitEdit} className="flex-1">
+                <input
+                  type="text"
+                  value={editingTitle}
+                  onChange={(e) => onEditingTitleChange?.(e.target.value)}
+                  className="w-full p-1 rounded border border-gray-300 dark:border-gray-600 
+                           bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                  autoFocus
+                />
+                <div className="flex mt-1 space-x-1">
+                  <button 
+                    type="submit" 
+                    className="text-xs bg-blue-500 text-white px-2 py-1 rounded"
+                  >
+                    Save
+                  </button>
+                  <button 
+                    type="button" 
+                    className="text-xs bg-gray-300 dark:bg-gray-600 px-2 py-1 rounded"
+                    onClick={() => onEditColumn?.(column._id, column.title)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <h3 className="text-gray-800 dark:text-gray-200">{column.title}</h3>
+                <div className="flex space-x-1">
+                  <button 
+                    onClick={() => onEditColumn?.(column._id, column.title)}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </button>
+                  <button 
+                    onClick={() => onDeleteColumn?.(column._id)}
+                    className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
-          <Droppable
-            droppableId={columnId}
-            type="task"
-          >
-            {(provided, snapshot) => (
-              <div
+          {/* Tasks List */}
+          <Droppable droppableId={columnId} type="task">
+            {(provided) => (
+              <div 
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className={`space-y-2 min-h-[200px] p-2 transition-colors ${
-                  snapshot.isDraggingOver
-                    ? 'bg-gray-50 dark:bg-gray-800/50'
-                    : ''
-                }`}
+                className="flex-1 overflow-y-auto p-2 space-y-2"
               >
-                {(!column.tasks || column.tasks.length === 0) ? (
-                  <div className="text-center py-4 text-gray-400 dark:text-gray-500 text-xs">
-                    No tasks
-                  </div>
-                ) : (
+                {column.tasks && column.tasks.length > 0 ? (
                   column.tasks.map((task, taskIndex) => (
                     <Task 
-                      key={task._id ? task._id.toString() : `task-${columnId}-${taskIndex}`} 
+                      key={task._id} 
                       task={task} 
                       index={taskIndex} 
                     />
                   ))
+                ) : (
+                  <div className="text-gray-400 dark:text-gray-500 text-center p-4 text-sm">
+                    No tasks yet
+                  </div>
                 )}
                 {provided.placeholder}
               </div>
             )}
           </Droppable>
-
+          
+          {/* Add Task Button */}
+          <div className="p-2 border-t border-gray-200 dark:border-gray-700">
+            <Button 
+              onClick={() => setIsModalOpen(true)} 
+              variant="ghost" 
+              className="w-full flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <PlusIcon className="h-4 w-4 mr-1" />
+              Add Task
+            </Button>
+          </div>
+          
+          {/* Task Form Modal */}
           <TaskFormModal
             columnId={column._id}
             isOpen={isModalOpen}

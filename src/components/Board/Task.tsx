@@ -12,6 +12,7 @@ interface TaskProps {
 
 export const Task = ({ task, index, onUpdate, onDelete }: TaskProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Safety check for task data
   if (!task || !task._id) {

@@ -27,20 +27,16 @@ export function formatDate(
     year: 'numeric',
   }
 ): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return new Intl.DateTimeFormat('en-US', options).format(d);
-}
-
-/**
- * Truncates a string to a specified length and adds an ellipsis
- * 
- * @param str - String to truncate
- * @param length - Maximum length
- * @returns Truncated string
- */
-export function truncateString(str: string, length: number): string {
-  if (str.length <= length) return str;
-  return `${str.slice(0, length)}...`;
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(d.getTime())) {
+      throw new Error('Invalid date');
+    }
+    return new Intl.DateTimeFormat('en-US', options).format(d);
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return 'Invalid date';
+  }
 }
 
 /**
@@ -50,9 +46,46 @@ export function truncateString(str: string, length: number): string {
  * @returns Random ID string
  */
 export function generateId(length: number = 8): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID().replace(/-/g, '').slice(0, length);
+  }
   return Math.random()
     .toString(36)
     .substring(2, 2 + length);
+}
+
+/**
+ * Truncates a string to a specified length and adds an ellipsis
+ * 
+ * @param str - String to truncate
+ * @param length - Maximum length
+ * @returns Truncated string
+ */
+export function truncateString(
+  str: string, 
+  length: number, 
+  options: { 
+    ellipsis?: string; 
+    wordBoundary?: boolean;
+  } = {}
+): string {
+  const { 
+    ellipsis = '...', 
+    wordBoundary = false 
+  } = options;
+
+  if (str.length <= length) return str;
+
+  let truncated = str.slice(0, length - ellipsis.length);
+  
+  if (wordBoundary) {
+    const lastSpace = truncated.lastIndexOf(' ');
+    if (lastSpace > 0) {
+      truncated = truncated.slice(0, lastSpace);
+    }
+  }
+
+  return truncated + ellipsis;
 }
 
 /**
