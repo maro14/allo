@@ -32,6 +32,7 @@ interface ColumnProps {
   isEditing?: boolean;
   editingTitle?: string;
   onEditingTitleChange?: (title: string) => void;
+  boardId: string; // Add this line
 }
 
 export const Column = ({ 

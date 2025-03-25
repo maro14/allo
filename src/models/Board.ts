@@ -7,29 +7,37 @@ const BoardSchema = new Schema({
     required: true,
     trim: true
   },
+  description: {
+    type: String,
+    trim: true
+  },
   userId: { 
     type: String, 
     required: true,
     index: true
   },
+  members: [{
+    type: String
+  }],
   columns: [{ 
     type: Schema.Types.ObjectId, 
     ref: 'Column' 
   }],
-  createdAt: {
-    type: Date,
-    default: Date.now
+  isArchived: {
+    type: Boolean,
+    default: false
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+  background: {
+    type: String
   }
 }, {
   timestamps: true // This will automatically update the updatedAt field
 })
 
-// Create a compound index for faster queries
+// Create compound indexes for faster queries
 BoardSchema.index({ userId: 1, name: 1 });
+BoardSchema.index({ userId: 1, isArchived: 1 });
+BoardSchema.index({ 'members': 1 });
 
 // Make sure we're using the correct model name consistently
 const BoardModel = mongoose.models.Board || mongoose.model('Board', BoardSchema)

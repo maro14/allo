@@ -21,13 +21,11 @@ const ColumnSchema = new Schema({
     type: Number,
     default: 0
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+  color: {
+    type: String
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+  limit: {
+    type: Number
   }
 }, {
   timestamps: true

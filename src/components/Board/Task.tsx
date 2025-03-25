@@ -12,8 +12,8 @@ interface TaskProps {
 
 export const Task = ({ task, index, onUpdate, onDelete }: TaskProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-
+  // Remove unused state
+  
   // Safety check for task data
   if (!task || !task._id) {
     console.error('Invalid task data:', task);
@@ -47,45 +47,49 @@ export const Task = ({ task, index, onUpdate, onDelete }: TaskProps) => {
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          onClick={() => setIsModalOpen(true)}
           className="bg-white dark:bg-gray-700 p-4 rounded shadow cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
         >
-          <div className="flex items-center gap-2 mb-2">
-            {task.labels && task.labels.map((label: string) => (
-              <span 
-                key={label}
-                className="text-xs px-2 py-1 rounded text-white"
-                style={{ backgroundColor: getLabelColor(label) }}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-
-          <div className="flex items-center mb-2">
-            <span 
-              className={`h-3 w-3 rounded-full mr-2 ${
-                getPriorityColor(task.priority)
-              }`}
-            />
-            <h4 className="font-semibold dark:text-white">{task.title}</h4>
-          </div>
-
-          {task.description && (
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2 line-clamp-2">{task.description}</p>
-          )}
-
-          {totalSubtasks > 0 && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center">
-              <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 mr-2">
-                <div 
-                  className="bg-blue-500 h-1.5 rounded-full" 
-                  style={{ width: `${(completedSubtasks / totalSubtasks) * 100}%` }}
-                ></div>
-              </div>
-              {completedSubtasks}/{totalSubtasks}
+          <div 
+            onClick={() => setIsModalOpen(true)}
+            className="w-full h-full"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              {task.labels && task.labels.map((label: string) => (
+                <span 
+                  key={label}
+                  className="text-xs px-2 py-1 rounded text-white"
+                  style={{ backgroundColor: getLabelColor(label) }}
+                >
+                  {label}
+                </span>
+              ))}
             </div>
-          )}
+
+            <div className="flex items-center mb-2">
+              <span 
+                className={`h-3 w-3 rounded-full mr-2 ${
+                  getPriorityColor(task.priority)
+                }`}
+              />
+              <h4 className="font-semibold dark:text-white">{task.title}</h4>
+            </div>
+
+            {task.description && (
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2 line-clamp-2">{task.description}</p>
+            )}
+
+            {totalSubtasks > 0 && (
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center">
+                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 mr-2">
+                  <div 
+                    className="bg-blue-500 h-1.5 rounded-full" 
+                    style={{ width: `${(completedSubtasks / totalSubtasks) * 100}%` }}
+                  ></div>
+                </div>
+                {completedSubtasks}/{totalSubtasks}
+              </div>
+            )}
+          </div>
 
           <TaskDetailModal
             task={task}
@@ -97,7 +101,7 @@ export const Task = ({ task, index, onUpdate, onDelete }: TaskProps) => {
         </div>
       )}
     </Draggable>
-  )
+  );
 }
 
 const getLabelColor = (label: string) => {

@@ -116,7 +116,8 @@ export const Modal = ({
   // Handle backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (closeOnBackdropClick && e.target === e.currentTarget) {
-      onClose()
+      e.stopPropagation(); // Prevent event bubbling
+      onClose();
     }
   }
 
@@ -142,14 +143,19 @@ export const Modal = ({
                    overflow-auto max-h-[90vh] animate-scaleIn ${className}`}
         style={modalStyle}
         tabIndex={-1}
+        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
       >
         <div className="relative p-6">
           <button 
-            onClick={onClose} 
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }} 
             className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 
                      dark:text-gray-300 dark:hover:text-gray-100 p-1 rounded-full 
                      hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label="Close modal"
+            type="button"
           >
             <svg 
               className="w-5 h-5" 
