@@ -1,11 +1,12 @@
 //src/components/board.index.tsx
-import { useState, useEffect } from 'react';
-import { DragDropContext, DropResult, Droppable } from 'react-beautiful-dnd';
+import { useState, useEffect, useCallback } from 'react';
 import Column from './Column';
 import { Button } from '../ui/Button';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { LoadingSpinnerBoard } from './LoadingSpinnerBoard';
+import { DragDropProvider } from '../../lib/dnd-provider';
 
+// Define your interfaces
 interface Task {
   _id: string;
   title: string;
@@ -40,6 +41,7 @@ const Board = ({ boardId }: BoardProps) => {
   const [editingColumnTitle, setEditingColumnTitle] = useState('');
   const [isReordering, setIsReordering] = useState(false);
 
+  // Fetch board data
   useEffect(() => {
     if (!boardId) return;
 
@@ -65,55 +67,182 @@ const Board = ({ boardId }: BoardProps) => {
     fetchBoard();
   }, [boardId]);
 
-  const reorderTasks = (
-    sourceColumn: Column,
-    destColumn: Column,
-    source: { index: number },
-    destination: { index: number }
-  ): Column[] => {
-    const sourceTasks = Array.from(sourceColumn.tasks);
-    const destTasks = Array.from(destColumn.tasks);
-    const [movedTask] = sourceTasks.splice(source.index, 1);
+  // Move these functions inside the component
+  const moveColumn = useCallback(
+    async (dragIndex: number, hoverIndex: number) => {
+      if (!board) return;
+      
+      const newColumns = [...board.columns];
+      const draggedColumn = newColumns[dragIndex];
+      
+      // Remove the dragged column
+      newColumns.splice(dragIndex, 1);
+      // Insert it at the new position
+      newColumns.splice(hoverIndex, 0, draggedColumn);
+      
+      // Update local state immediately for responsive UI
+      setBoard({ ...board, columns: newColumns });
+      
+      // Send update to server
+      const columnIds = newColumns.map(col => col._id);
+      try {
+        await fetch(`/api/columns/reorder`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ boardId, columnIds }),
+        });
+      } catch (error) {
+        console.error('Error reordering columns:', error);
+      }
+    },
+    [board, boardId]
+  );
 
-    if (sourceColumn._id === destColumn._id) {
-      sourceTasks.splice(destination.index, 0, movedTask);
-      return board!.columns.map((col) =>
-        col._id === sourceColumn._id ? { ...col, tasks: sourceTasks } : col
-      );
-    } else {
-      destTasks.splice(destination.index, 0, movedTask);
-      return board!.columns.map((col) => {
-        if (col._id === sourceColumn._id) return { ...col, tasks: sourceTasks };
-        if (col._id === destColumn._id) return { ...col, tasks: destTasks };
+  const moveTask = useCallback(
+    async (
+      taskId: string,
+      sourceColumnId: string,
+      destinationColumnId: string,
+      sourceIndex: number,
+      destinationIndex: number
+    ) => {
+      if (!board) return;
+      
+      const sourceColumn = board.columns.find(col => col._id === sourceColumnId);
+      const destColumn = board.columns.find(col => col._id === destinationColumnId);
+      
+      if (!sourceColumn || !destColumn) return;
+      
+      // Create new arrays for the tasks
+      const sourceTasks = Array.from(sourceColumn.tasks);
+      const destTasks = sourceColumnId === destinationColumnId 
+        ? sourceTasks 
+        : Array.from(destColumn.tasks);
+      
+      // Remove from source
+      const [movedTask] = sourceTasks.splice(sourceIndex, 1);
+      
+      // Add to destination
+      if (sourceColumnId === destinationColumnId) {
+        sourceTasks.splice(destinationIndex, 0, movedTask);
+      } else {
+        destTasks.splice(destinationIndex, 0, movedTask);
+      }
+      
+      // Create updated columns
+      const updatedColumns = board.columns.map(col => {
+        if (col._id === sourceColumnId) {
+          return { ...col, tasks: sourceTasks };
+        }
+        if (col._id === destinationColumnId && sourceColumnId !== destinationColumnId) {
+          return { ...col, tasks: destTasks };
+        }
         return col;
       });
-    }
-  };
+      
+      // Update local state
+      setBoard({ ...board, columns: updatedColumns });
+      
+      // Send update to server
+      try {
+        await fetch(`/api/tasks/${taskId}/move`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourceColumnId,
+            destinationColumnId,
+            destinationIndex,
+          }),
+        });
+      } catch (error) {
+        console.error('Error moving task:', error);
+      }
+    },
+    [board]
+  );
 
   const handleDragEnd = async (result: DropResult) => {
     setIsReordering(true);
     try {
-      const { destination, source, type } = result;
-
+      const { destination, source, type, draggableId } = result;
+  
+      // If no destination or dropped in same position, do nothing
       if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
         return;
       }
-
+  
+      // Handle column reordering
       if (type === 'column') {
         const newColumns = Array.from(board!.columns);
         const [movedColumn] = newColumns.splice(source.index, 1);
         newColumns.splice(destination.index, 0, movedColumn);
+        
+        // Update local state immediately for responsive UI
         setBoard({ ...board!, columns: newColumns });
-        await updateColumnOrder(newColumns);
-      } else {
-        const sourceColumn = board!.columns.find((col) => col._id === source.droppableId);
-        const destColumn = board!.columns.find((col) => col._id === destination.droppableId);
+        
+        // Send update to server
+        const columnIds = newColumns.map(col => col._id);
+        await fetch(`/api/columns/reorder`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ boardId, columnIds }),
+        });
+      } 
+      // Handle task reordering
+      else if (type === 'task') {
+        const sourceColumn = board!.columns.find(col => col._id === source.droppableId);
+        const destColumn = board!.columns.find(col => col._id === destination.droppableId);
+        
         if (!sourceColumn || !destColumn) return;
-
-        const updatedColumns = reorderTasks(sourceColumn, destColumn, source, destination);
+        
+        // Get the task that was moved
+        const taskId = draggableId;
+        
+        // Create new arrays for the tasks
+        const sourceTasks = Array.from(sourceColumn.tasks);
+        const destTasks = sourceColumn._id === destColumn._id 
+          ? sourceTasks 
+          : Array.from(destColumn.tasks);
+        
+        // Remove from source
+        const [movedTask] = sourceTasks.splice(source.index, 1);
+        
+        // Add to destination
+        if (sourceColumn._id === destColumn._id) {
+          sourceTasks.splice(destination.index, 0, movedTask);
+        } else {
+          destTasks.splice(destination.index, 0, movedTask);
+        }
+        
+        // Create updated columns
+        const updatedColumns = board!.columns.map(col => {
+          if (col._id === sourceColumn._id) {
+            return { ...col, tasks: sourceTasks };
+          }
+          if (col._id === destColumn._id && sourceColumn._id !== destColumn._id) {
+            return { ...col, tasks: destTasks };
+          }
+          return col;
+        });
+        
+        // Update local state
         setBoard({ ...board!, columns: updatedColumns });
-        await updateTaskOrder(sourceColumn, destColumn, source, destination);
+        
+        // Send update to server
+        await fetch(`/api/tasks/${taskId}/move`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourceColumnId: sourceColumn._id,
+            destinationColumnId: destColumn._id,
+            destinationIndex: destination.index,
+          }),
+        });
       }
+    } catch (error) {
+      console.error('Error during drag and drop:', error);
+      // Optionally refresh the board to ensure UI is in sync with server
+      // fetchBoard();
     } finally {
       setIsReordering(false);
     }
@@ -259,6 +388,7 @@ const Board = ({ boardId }: BoardProps) => {
     }
   };
 
+  // Loading, error, and empty states
   if (loading) {
     return <LoadingSpinnerBoard size="lg" message="Loading your board..." />;
   }
@@ -271,84 +401,79 @@ const Board = ({ boardId }: BoardProps) => {
     return <div>Board not found</div>;
   }
 
+  // Main render
   return (
-    <>
+    <div className="h-full overflow-x-auto">
       {isReordering && <LoadingSpinnerBoard size="sm" message="Reordering..." />}
       <div className="p-4">
         <h1 className="text-2xl font-bold mb-4">{board?.name}</h1>
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="board" direction="horizontal" type="column">
-            {(provided) => (
-              <div 
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className="flex gap-4 overflow-x-auto min-h-[calc(100vh-12rem)]"
-              >
-                {board?.columns.map((column, index) => (
-                  <Column
-                    key={column._id}
-                    column={column}
-                    index={index}
-                    boardId={boardId}
-                    onTaskCreated={handleTaskCreated}
-                    onDeleteColumn={handleDeleteColumn}
-                    onEditColumn={handleEditColumn}
-                    onUpdateColumnTitle={handleUpdateColumnTitle}
-                    isEditing={editingColumnId === column._id}
-                    editingTitle={editingColumnId === column._id ? editingColumnTitle : ''}
-                    onEditingTitleChange={setEditingColumnTitle}
-                  />
-                ))}
-                {provided.placeholder}
-                <div className="flex-shrink-0 w-80">
-                  {!isAddingColumn ? (
-                    <div className="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
+        <DragDropProvider>
+          <div className="flex gap-4 overflow-x-auto min-h-[calc(100vh-12rem)]">
+            {board.columns.map((column, index) => (
+              <Column
+                key={column._id}
+                column={column}
+                index={index}
+                boardId={boardId}
+                onTaskCreated={handleTaskCreated}
+                onDeleteColumn={handleDeleteColumn}
+                onEditColumn={handleEditColumn}
+                onUpdateColumnTitle={handleUpdateColumnTitle}
+                isEditing={editingColumnId === column._id}
+                editingTitle={editingColumnTitle}
+                onEditingTitleChange={setEditingColumnTitle}
+                moveColumn={moveColumn}
+                moveTask={moveTask}
+              />
+            ))}
+            
+            <div className="flex-shrink-0 w-80">
+              {!isAddingColumn ? (
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
+                  <Button
+                    onClick={() => setIsAddingColumn(true)}
+                    className="flex items-center w-full h-12 justify-center"
+                    variant="outline"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-1" />
+                    Add Column
+                  </Button>
+                </div>
+              ) : (
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
+                  <form onSubmit={handleAddColumn} className="flex flex-col">
+                    <input
+                      type="text"
+                      value={newColumnTitle}
+                      onChange={(e) => setNewColumnTitle(e.target.value)}
+                      placeholder="Column title"
+                      className="p-2 border rounded mb-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      autoFocus
+                    />
+                    <div className="flex space-x-2">
+                      <Button type="submit" size="sm">
+                        Add
+                      </Button>
                       <Button
-                        onClick={() => setIsAddingColumn(true)}
-                        className="flex items-center w-full h-12 justify-center"
-                        variant="outline"
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsAddingColumn(false);
+                          setNewColumnTitle('');
+                        }}
                       >
-                        <PlusIcon className="h-4 w-4 mr-1" />
-                        Add Column
+                        Cancel
                       </Button>
                     </div>
-                  ) : (
-                    <div className="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
-                      <form onSubmit={handleAddColumn} className="flex flex-col">
-                        <input
-                          type="text"
-                          value={newColumnTitle}
-                          onChange={(e) => setNewColumnTitle(e.target.value)}
-                          placeholder="Column title"
-                          className="p-2 border rounded mb-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                          autoFocus
-                        />
-                        <div className="flex space-x-2">
-                          <Button type="submit" size="sm">
-                            Add
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setIsAddingColumn(false);
-                              setNewColumnTitle('');
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </form>
-                    </div>
-                  )}
+                  </form>
                 </div>
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
+              )}
+            </div>
+          </div>
+        </DragDropProvider>
       </div>
-    </>
+    </div>
   );
 };
 
