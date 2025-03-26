@@ -45,30 +45,57 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       const position = highestPositionColumn ? highestPositionColumn.position + 1 : 0;
       
-      // Consider adding a transaction here for atomicity
-      const newColumn = new Column({ 
-        title: title.trim(), 
-        boardId,
-        position,
-        tasks: []
-      })
+      // Use a session for transaction
+      const session = await mongoose.startSession();
+      let newColumn;
       
-      await newColumn.save()
-      
-      // Update board's columns array
-      await Board.findByIdAndUpdate(boardId, { 
-        $push: { columns: newColumn._id },
-        updatedAt: new Date()
-      })
-      
-      return res.status(201).json({ success: true, data: newColumn })
+      try {
+        await session.withTransaction(async () => {
+          // Create new column
+          newColumn = new Column({ 
+            title: title.trim(), 
+            boardId,
+            position,
+            tasks: []
+          });
+          
+          await newColumn.save({ session });
+          
+          // Update board's columns array
+          await Board.findByIdAndUpdate(
+            boardId, 
+            { 
+              $push: { columns: newColumn._id },
+              updatedAt: new Date()
+            },
+            { session }
+          );
+        });
+        
+        await session.endSession();
+        
+        // Populate tasks for the response
+        newColumn = await Column.findById(newColumn._id).populate('tasks');
+        
+        return res.status(201).json({ 
+          success: true, 
+          data: newColumn,
+          message: 'Column created successfully'
+        });
+      } catch (error) {
+        await session.endSession();
+        throw error;
+      }
     }
     
     // GET - Retrieve all columns for a board
     if (req.method === 'GET') {
       const columns = await Column.find({ boardId })
         .sort({ position: 1 })
-        .populate('tasks')
+        .populate({
+          path: 'tasks',
+          options: { sort: { position: 1 } }
+        });
       
       return res.status(200).json({ success: true, data: columns })
     }
@@ -98,12 +125,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           updatedAt: new Date()
         },
         { new: true }
-      )
+      ).populate('tasks');
       
       // Update board's updatedAt timestamp
       await Board.findByIdAndUpdate(boardId, { updatedAt: new Date() })
       
-      return res.status(200).json({ success: true, data: updatedColumn })
+      return res.status(200).json({ 
+        success: true, 
+        data: updatedColumn,
+        message: 'Column updated successfully'
+      })
     }
     
     // DELETE - Delete a column and its tasks
@@ -120,29 +151,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ success: false, error: 'Column not found' })
       }
       
-      // Delete all tasks in this column
-      await Task.deleteMany({ columnId })
+      // Use a session for transaction
+      const session = await mongoose.startSession();
       
-      // Remove column from board's columns array
-      await Board.findByIdAndUpdate(boardId, { 
-        $pull: { columns: columnId },
-        updatedAt: new Date()
-      })
-      
-      // Delete the column
-      await Column.findByIdAndDelete(columnId)
-      
-      // Reorder remaining columns to ensure no gaps in position
-      const remainingColumns = await Column.find({ boardId }).sort({ position: 1 })
-      
-      for (let i = 0; i < remainingColumns.length; i++) {
-        await Column.findByIdAndUpdate(remainingColumns[i]._id, { position: i })
+      try {
+        await session.withTransaction(async () => {
+          // Delete all tasks in this column
+          await Task.deleteMany({ columnId }, { session });
+          
+          // Remove column from board's columns array
+          await Board.findByIdAndUpdate(
+            boardId, 
+            { 
+              $pull: { columns: columnId },
+              updatedAt: new Date()
+            },
+            { session }
+          );
+          
+          // Delete the column
+          await Column.findByIdAndDelete(columnId, { session });
+          
+          // Get remaining columns to reorder
+          const remainingColumns = await Column.find({ boardId })
+            .sort({ position: 1 })
+            .session(session);
+          
+          // Update positions to ensure no gaps
+          const updateOperations = remainingColumns.map((col, index) => ({
+            updateOne: {
+              filter: { _id: col._id },
+              update: { position: index }
+            }
+          }));
+          
+          if (updateOperations.length > 0) {
+            await Column.bulkWrite(updateOperations, { session });
+          }
+        });
+        
+        await session.endSession();
+        
+        return res.status(200).json({ 
+          success: true, 
+          message: 'Column and all associated tasks deleted successfully' 
+        });
+      } catch (error) {
+        await session.endSession();
+        throw error;
       }
-      
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Column and all associated tasks deleted successfully' 
-      })
     }
     
     // Method not allowed

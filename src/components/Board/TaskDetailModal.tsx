@@ -1,5 +1,5 @@
 //src/components/Board/TaskDetailModal.tsx
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Modal } from '../ui/Modal'
 import { TaskType } from './Column'
 import { CheckIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
@@ -26,8 +26,7 @@ export const TaskDetailModal = ({
   const modalHeaderRef = useRef<HTMLDivElement>(null)
 
   // Initialize edit form when task changes or edit mode is activated
-  // This should be useEffect, not useState
-  useState(() => {
+  useEffect(() => {
     if (task) {
       setEditedTitle(task.title)
       setEditedDescription(task.description || '')
@@ -38,7 +37,7 @@ export const TaskDetailModal = ({
         .map(subtask => subtask._id) || []
       setCompletedSubtasks(completed)
     }
-})
+  }, [task])
 
   if (!task) return null
 

@@ -1,11 +1,19 @@
 //src/components/Board/Column.tsx
-import { useState, useRef } from 'react';
+import { useState, useRef, memo } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { Task } from './Task';
 import { TaskFormModal } from './TaskFormModal';
 import { Button } from '../ui/Button';
-import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { GripVertical } from 'lucide-react';
+import { PlusIcon } from '@heroicons/react/24/outline';
+import { GripVertical, EllipsisVertical } from 'lucide-react';
+import { ColumnModal } from './ColumnModal';
+
+// Improve type safety for subtasks
+export interface Subtask {
+  _id: string;
+  title: string;
+  completed: boolean;
+}
 
 export interface TaskType {
   _id: string;
@@ -13,7 +21,7 @@ export interface TaskType {
   description?: string;
   priority?: string;
   labels?: string[];
-  subtasks?: any[];
+  subtasks?: Subtask[];
 }
 
 interface ColumnType {
@@ -63,6 +71,7 @@ export const Column = ({
   moveTask
 }: ColumnProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   if (!column || !column._id) {
@@ -154,12 +163,24 @@ export const Column = ({
     }
   };
 
+  const handleUpdateColumn = (columnId: string, title: string) => {
+    if (onEditingTitleChange) {
+      onEditingTitleChange(title);
+    }
+    if (onUpdateColumnTitle) {
+      onUpdateColumnTitle(columnId);
+    }
+    setIsColumnModalOpen(false);
+  };
+
   return (
     <div
       ref={ref}
       className={`bg-gray-100 dark:bg-gray-800 rounded-md w-80 flex-shrink-0 flex flex-col max-h-[calc(100vh-12rem)] ${
         isDragging ? 'opacity-50' : ''
       }`}
+      aria-roledescription="Draggable column"
+      aria-label={`Column ${column.title} with ${column.tasks?.length || 0} tasks`}
     >
       <div 
         className="p-3 font-medium flex justify-between items-center bg-gray-200 dark:bg-gray-700 rounded-t-md"
@@ -167,6 +188,7 @@ export const Column = ({
         {/* Drag handle with icon */}
         <div 
           className="flex items-center cursor-grab active:cursor-grabbing"
+          aria-label="Drag handle"
         >
           <div className="mr-2 text-gray-500 dark:text-gray-400">
             <GripVertical size={16} />
@@ -208,20 +230,11 @@ export const Column = ({
           <Button
             variant="ghost"
             size="sm"
-            iconOnly
-            onClick={() => onEditColumn?.(column._id, column.title)}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            onClick={() => setIsColumnModalOpen(true)}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1"
+            aria-label="Column options"
           >
-            <PencilIcon className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            iconOnly
-            onClick={() => onDeleteColumn?.(column._id)}
-            className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
-          >
-            <TrashIcon className="h-4 w-4" />
+            <EllipsisVertical size={18} strokeWidth={2} />
           </Button>
         </div>
       </div>
@@ -230,6 +243,8 @@ export const Column = ({
       <div
         ref={dropTask}
         className="flex-1 overflow-y-auto p-2 space-y-2"
+        aria-label={`Tasks in ${column.title}`}
+        role="list"
       >
         {column.tasks && column.tasks.length > 0 ? (
           column.tasks.map((task, taskIndex) => (
@@ -267,8 +282,19 @@ export const Column = ({
         onClose={() => setIsModalOpen(false)}
         onTaskCreated={handleTaskCreated}
       />
+
+      {/* Column Modal */}
+      <ColumnModal
+        isOpen={isColumnModalOpen}
+        onClose={() => setIsColumnModalOpen(false)}
+        column={column}
+        onDelete={onDeleteColumn}
+        onUpdate={handleUpdateColumn}
+        boardId={boardId}
+      />
     </div>
   );
 };
 
-export default Column;
+// Use React.memo to prevent unnecessary re-renders
+export default memo(Column);

@@ -1,6 +1,9 @@
 // Add this to your extend section in the tailwind.config.js file
 module.exports = {
-  // ... other config
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx}',
+    './src/components/**/*.{js,ts,jsx,tsx}',
+  ],
   extend: {
     // ... other extensions
     animation: {
@@ -18,4 +21,5 @@ module.exports = {
       },
     },
   },
+  plugins: [],
 }
