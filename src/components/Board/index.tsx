@@ -6,6 +6,20 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 import { LoadingSpinnerBoard } from './LoadingSpinnerBoard';
 import { DragDropProvider } from '../../lib/dnd-provider';
 
+// Define DropResult interface if not imported
+interface DropResult {
+  destination: {
+    droppableId: string;
+    index: number;
+  } | null;
+  source: {
+    droppableId: string;
+    index: number;
+  };
+  draggableId: string;
+  type: string;
+}
+
 // Define your interfaces
 interface Task {
   _id: string;

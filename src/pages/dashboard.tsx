@@ -1,4 +1,5 @@
 //src/pages/dashboard.tsx
+// Import toast for notifications
 import { useAuth, useUser } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -9,9 +10,11 @@ import {
   PencilIcon, 
   TrashIcon,
   CheckIcon,
-  XMarkIcon 
+  XMarkIcon,
+  ArrowsUpDownIcon // Add for sorting
 } from '@heroicons/react/24/outline'
 import { LoadingSpinnerBoard } from '../components/Board/LoadingSpinnerBoard'
+import toast from 'react-hot-toast' // Add toast for notifications
 
 // Define proper types for Board
 interface Board {
@@ -29,6 +32,9 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [editingBoard, setEditingBoard] = useState<Board | null>(null)
   const [editName, setEditName] = useState('')
+  // Add these new states
+  const [isCreating, setIsCreating] = useState(false)
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'alphabetical'>('newest')
 
   useEffect(() => {
     if (!userId) return
@@ -53,15 +59,39 @@ const Dashboard = () => {
     
     if (!newBoardName.trim()) return
     
-    const res = await fetch('/api/boards', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newBoardName })
-    })
-    
-    const newBoard = await res.json()
-    setBoards([newBoard.data, ...boards])
-    setNewBoardName('')
+    setIsCreating(true) // Show loading state
+    try {
+      const res = await fetch('/api/boards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newBoardName })
+      })
+      
+      const newBoard = await res.json()
+      if (newBoard.success) {
+        setBoards([newBoard.data, ...boards])
+        setNewBoardName('')
+        toast.success('Board created successfully!')
+      } else {
+        toast.error(newBoard.error || 'Failed to create board')
+      }
+    } catch (err) {
+      console.error('Error creating board:', err)
+      toast.error('Failed to create board. Please try again.')
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  // Add a sort function
+  const sortBoards = (boards: Board[]) => {
+    if (sortOrder === 'newest') {
+      return [...boards].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    } else if (sortOrder === 'oldest') {
+      return [...boards].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    } else {
+      return [...boards].sort((a, b) => a.name.localeCompare(b.name))
+    }
   }
 
   const startEditing = (board: Board) => {
@@ -126,31 +156,56 @@ const Dashboard = () => {
     }
   }
 
+  // Update your return JSX with improved UI
   return (
     <DashboardLayout title="Dashboard" username={user?.firstName || 'User'} gridLayout={false}>
-      <div className="p-4 md:p-6 max-w-full mx-auto">
+      <div className="p-4 md:p-6 max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-4 md:mb-0 mr-3">
             Your Boards
           </h1>
           
-          <form onSubmit={createBoard} className="flex w-full md:w-auto">
-            <input
-              type="text"
-              value={newBoardName}
-              onChange={(e) => setNewBoardName(e.target.value)}
-              placeholder="New board name"
-              className="p-2 px-4 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white w-full md:w-64 transition-all duration-200"
-            />
-            <button 
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg transition-all duration-200 flex items-center shadow-sm hover:shadow"
-              disabled={!newBoardName.trim()}
-            >
-              <PlusIcon className="h-5 w-5 mr-1" />
-              Create
-            </button>
-          </form>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div className="flex items-center">
+              <button 
+                onClick={() => setSortOrder(sortOrder === 'newest' ? 'alphabetical' : sortOrder === 'alphabetical' ? 'oldest' : 'newest')}
+                className="flex items-center text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                <ArrowsUpDownIcon className="h-4 w-4 mr-1" />
+                Sort: {sortOrder === 'newest' ? 'Newest' : sortOrder === 'oldest' ? 'Oldest' : 'A-Z'}
+              </button>
+            </div>
+            
+            <form onSubmit={createBoard} className="flex w-full sm:w-auto">
+              <input
+                type="text"
+                value={newBoardName}
+                onChange={(e) => setNewBoardName(e.target.value)}
+                placeholder="New board name"
+                className="p-2 px-4 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white w-full transition-all duration-200"
+              />
+              <button 
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg transition-all duration-200 flex items-center shadow-sm hover:shadow disabled:opacity-70 disabled:cursor-not-allowed"
+                disabled={!newBoardName.trim() || isCreating}
+              >
+                {isCreating ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating...
+                  </span>
+                ) : (
+                  <>
+                    <PlusIcon className="h-5 w-5 mr-1" />
+                    Create
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
         </div>
 
         {isLoading ? (
@@ -168,9 +223,9 @@ const Dashboard = () => {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col space-y-4">
-            {Array.isArray(boards) && boards.map((board, index) => (
-              <div key={board._id} className={`bg-gray-800 p-5 rounded-lg border border-gray-700 flex justify-between items-center transform hover:-translate-y-1 transition-all duration-300 ${index === 0 ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.isArray(boards) && sortBoards(boards).map((board, index) => (
+              <div key={board._id} className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col justify-between transform hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-md">
                 {editingBoard && editingBoard._id === board._id ? (
                   <form onSubmit={updateBoard} className="flex-1 flex items-center">
                     <input

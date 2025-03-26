@@ -34,7 +34,8 @@ export const useBoard = (boardId: string) => {
       if (!res.ok) {
         throw new Error('Failed to fetch board');
       }
-      return res.json();
+      const data = await res.json();
+      return data.data;
     },
     enabled: !!boardId,
   });
