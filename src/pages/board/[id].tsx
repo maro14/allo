@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button'
 import { LoadingSpinnerBoard } from '../../components/Board/LoadingSpinnerBoard'
 import { useEffect } from 'react'
 import { toast } from 'react-hot-toast'
+import { BoardHeaderActions } from '../../components/Board/BoardHeaderActions'
 
 const BoardPage = () => {
   const router = useRouter()
@@ -54,7 +55,7 @@ const BoardPage = () => {
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto p-4">
+      <div className="max-w-8xl mx-auto p-4">
         <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-4">
           <h2 className="text-lg font-semibold mb-2">Unable to load board</h2>
           <p className="mb-3">{error instanceof Error ? error.message : 'An error occurred while loading the board'}</p>
@@ -86,7 +87,7 @@ const BoardPage = () => {
         <meta name="description" content={`${board?.name || 'Board'} - Manage your tasks and projects efficiently`} />
       </Head>
       
-      <div className="w-full max-w-5xl mx-auto px-3 sm:px-4">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
         <div className="mb-2 flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
           <div className="flex items-center">
             <h1 className="text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -95,7 +96,10 @@ const BoardPage = () => {
           </div>
           
           <div className="flex space-x-2">
-            {/* Board actions would go here */}
+            <BoardHeaderActions 
+              onRefresh={() => refetch && refetch()} 
+              boardId={boardId} 
+            />
           </div>
         </div>
         
