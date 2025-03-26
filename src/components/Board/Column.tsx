@@ -105,22 +105,31 @@ export const Column = ({
       
       // Get horizontal middle
       const hoverMiddleX = (hoverBoundingRect.right - hoverBoundingRect.left) / 2;
+      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
       
       // Determine mouse position
       const clientOffset = monitor.getClientOffset();
       
-      // Get pixels to the left
+      // Get pixels to the left/top
       const hoverClientX = clientOffset!.x - hoverBoundingRect.left;
+      const hoverClientY = clientOffset!.y - hoverBoundingRect.top;
       
-      // Only perform the move when the mouse has crossed half of the items width
-      // When dragging right, only move when the cursor is after 50%
-      // When dragging left, only move when the cursor is before 50%
-      
-      // Dragging right
-      if (dragIndex < hoverIndex && hoverClientX < hoverMiddleX) return;
-      
-      // Dragging left
-      if (dragIndex > hoverIndex && hoverClientX > hoverMiddleX) return;
+      // For horizontal movement
+      if (Math.abs(hoverClientY - hoverMiddleY) > Math.abs(hoverClientX - hoverMiddleX)) {
+        // Vertical movement
+        // Dragging downwards
+        if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
+        
+        // Dragging upwards
+        if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
+      } else {
+        // Horizontal movement
+        // Dragging right
+        if (dragIndex < hoverIndex && hoverClientX < hoverMiddleX) return;
+        
+        // Dragging left
+        if (dragIndex > hoverIndex && hoverClientX > hoverMiddleX) return;
+      }
       
       // Time to actually perform the action
       moveColumn(dragIndex, hoverIndex);
@@ -176,7 +185,7 @@ export const Column = ({
   return (
     <div
       ref={ref}
-      className={`bg-gray-100 dark:bg-gray-800 rounded-md w-80 flex-shrink-0 flex flex-col max-h-[calc(100vh-12rem)] ${
+      className={`bg-gray-100 dark:bg-gray-800 rounded-md w-96 flex-shrink-0 flex flex-col max-h-[calc(100vh-12rem)] ${
         isDragging ? 'opacity-50' : ''
       }`}
       aria-roledescription="Draggable column"
@@ -296,5 +305,4 @@ export const Column = ({
   );
 };
 
-// Use React.memo to prevent unnecessary re-renders
 export default memo(Column);

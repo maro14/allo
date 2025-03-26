@@ -403,12 +403,12 @@ const Board = ({ boardId }: BoardProps) => {
 
   // Main render
   return (
-    <div className="h-full overflow-x-auto">
+    <div className="h-screen w-screen overflow-auto fixed top-0 left-0 z-10 bg-white dark:bg-gray-900">
       {isReordering && <LoadingSpinnerBoard size="sm" message="Reordering..." />}
-      <div className="p-4">
+      <div className="p-4 h-full">
         <h1 className="text-2xl font-bold mb-4">{board?.name}</h1>
         <DragDropProvider>
-          <div className="flex gap-4 overflow-x-auto min-h-[calc(100vh-12rem)]">
+          <div className="flex gap-4 overflow-x-auto min-h-[calc(100vh-8rem)] pb-8">
             {board.columns.map((column, index) => (
               <Column
                 key={column._id}

@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { useState } from 'react';
 import { TaskDetailModal } from './TaskDetailModal';
+import { TaskType } from './Column';
 
 interface TaskProps {
   task: {
