@@ -9,7 +9,6 @@ import mongoose from 'mongoose'
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await dbConnect()
-    
     const { userId } = getAuth(req)
     const { id } = req.query
     
@@ -113,6 +112,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         await session.commitTransaction();
         return res.status(200).json({ success: true, message: 'Board deleted successfully' });
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        session.endSession();
+      }
+    }
+
+    // Add new PATCH method for updating board position
+    if (req.method === 'PATCH') {
+      const { position } = req.body;
+      
+      if (typeof position !== 'number') {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Position must be a number' 
+        });
+      }
+
+      const session = await mongoose.startSession();
+      session.startTransaction();
+
+      try {
+        // Update the target board's position
+        const updatedBoard = await Board.findOneAndUpdate(
+          { _id: id, userId },
+          { position, updatedAt: new Date() },
+          { new: true, session }
+        );
+
+        if (!updatedBoard) {
+          await session.abortTransaction();
+          return res.status(404).json({ success: false, error: 'Board not found' });
+        }
+
+        // Reorder other boards if needed
+        await Board.updateMany(
+          { 
+            userId,
+            _id: { $ne: id },
+            position: { $gte: position }
+          },
+          { $inc: { position: 1 } },
+          { session }
+        );
+
+        await session.commitTransaction();
+        return res.status(200).json({ success: true, data: updatedBoard });
       } catch (error) {
         await session.abortTransaction();
         throw error;

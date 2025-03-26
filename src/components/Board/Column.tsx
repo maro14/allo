@@ -37,14 +37,15 @@ interface ColumnProps {
 
 export const Column = ({ 
   column, 
-  index, 
+  index,
   onTaskCreated,
   onDeleteColumn,
   onEditColumn,
   onUpdateColumnTitle,
   isEditing,
   editingTitle,
-  onEditingTitleChange
+  onEditingTitleChange,
+  boardId
 }: ColumnProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -78,17 +79,16 @@ export const Column = ({
   };
 
   return (
-    <Draggable draggableId={columnId} index={index}>
+    <Draggable draggableId={column._id} index={index}>
       {(provided) => (
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
           className="bg-gray-100 dark:bg-gray-800 rounded-md w-80 flex-shrink-0 flex flex-col max-h-[calc(100vh-12rem)]"
         >
-          {/* Column Header */}
           <div 
             {...provided.dragHandleProps}
-            className="p-3 font-medium flex justify-between items-center bg-gray-200 dark:bg-gray-700 rounded-t-md"
+            className="p-3 font-medium flex justify-between items-center bg-gray-200 dark:bg-gray-700 rounded-t-md cursor-move"
           >
             {isEditing ? (
               <form onSubmit={handleSubmitEdit} className="flex-1">
@@ -138,9 +138,9 @@ export const Column = ({
           </div>
 
           {/* Tasks List */}
-          <Droppable droppableId={columnId} type="task">
+          <Droppable droppableId={column._id} type="task">
             {(provided) => (
-              <div 
+              <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
                 className="flex-1 overflow-y-auto p-2 space-y-2"

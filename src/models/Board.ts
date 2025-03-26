@@ -29,6 +29,12 @@ const BoardSchema = new Schema({
   },
   background: {
     type: String
+  },
+  // Add position field if not already present
+  position: {
+    type: Number,
+    required: true,
+    default: 0
   }
 }, {
   timestamps: true // This will automatically update the updatedAt field
