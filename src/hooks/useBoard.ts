@@ -1,5 +1,6 @@
 // src/hooks/useBoard.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/router';
 
 // Types
 interface Task {
@@ -26,18 +27,41 @@ interface Board {
 }
 
 // Fetch a board by ID
+// Update the useBoard function to handle auth errors better
 export const useBoard = (boardId: string) => {
+  const router = useRouter();
+  
   return useQuery({
     queryKey: ['board', boardId],
     queryFn: async (): Promise<Board> => {
-      const res = await fetch(`/api/boards/${boardId}`);
-      if (!res.ok) {
-        throw new Error('Failed to fetch board');
+      try {
+        const res = await fetch(`/api/boards/${boardId}`);
+        
+        if (res.status === 401) {
+          // Handle unauthorized specifically
+          throw new Error('401: Your session has expired');
+        }
+        
+        if (!res.ok) {
+          throw new Error(`Failed to fetch board: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        return data.data;
+      } catch (error) {
+        console.error('Board fetch error:', error);
+        throw error;
       }
-      const data = await res.json();
-      return data.data;
     },
     enabled: !!boardId,
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error instanceof Error && error.message.includes('401')) {
+        return false;
+      }
+      // Retry other errors up to 3 times
+      return failureCount < 3;
+    }
   });
 };
 
