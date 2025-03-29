@@ -10,7 +10,8 @@ interface ModalProps {
   position?: { x: number, y: number }
   dragHandleRef?: RefObject<HTMLDivElement | null>
   closeOnBackdropClick?: boolean
-  className?: string  // Fixed: Added proper type definition
+  className?: string
+  hideCloseButton?: boolean  // Add this prop to control X button visibility
 }
 
 export const Modal = ({
@@ -21,7 +22,8 @@ export const Modal = ({
   position = { x: 0, y: 0 },
   dragHandleRef,
   closeOnBackdropClick = true,
-  className = ''
+  className = '',
+  hideCloseButton = true  // Default to hiding the close button
 }: ModalProps) => {
   const modalRef = useRef<HTMLDivElement>(null)
   const [modalPosition, setModalPosition] = useState(position)
@@ -88,30 +90,7 @@ export const Modal = ({
       window.removeEventListener('mousemove', handleDragMove)
       window.removeEventListener('mouseup', handleDragEnd)
     }
-  }, [dragHandleRef, isDragging, dragOffset, isOpen])
-  
-  // Reset position when modal reopens
-  useEffect(() => {
-    if (isOpen) {
-      setModalPosition(position)
-    }
-  }, [isOpen, position])
-  
-  // Focus management
-  useEffect(() => {
-    if (isOpen && modalRef.current) {
-      // Find the first focusable element
-      const focusableElements = modalRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      )
-      
-      if (focusableElements.length) {
-        (focusableElements[0] as HTMLElement).focus()
-      } else {
-        modalRef.current.focus()
-      }
-    }
-  }, [isOpen])
+  }, [dragHandleRef, isOpen, isDragging, dragOffset])
   
   // Handle backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -120,57 +99,37 @@ export const Modal = ({
       onClose();
     }
   }
-
-  const modalStyle = {
-    transform: `translate(${modalPosition.x}px, ${modalPosition.y}px)`,
-    cursor: isDragging ? 'grabbing' : 'auto'
-  }
-
-  if (!isOpen || !mounted) return null
-
-  // Create portal for the modal
+  
+  // Don't render anything on the server or if not open
+  if (!mounted || !isOpen) return null
+  
+  // Use portal to render modal at the root level
   return ReactDOM.createPortal(
     <div 
-      className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm transition-opacity"
       onClick={handleBackdropClick}
-      aria-modal="true"
-      role="dialog"
     >
-      <div 
+      <div
         ref={modalRef}
-        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl ${maxWidth} w-full 
-                   transition-all duration-200 ease-in-out opacity-100 scale-100 
-                   overflow-auto max-h-[90vh] animate-scaleIn ${className}`}
-        style={modalStyle}
-        tabIndex={-1}
-        onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
+        className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden ${maxWidth} w-full relative transition-all ${className}`}
+        style={{
+          transform: dragHandleRef ? `translate(${modalPosition.x}px, ${modalPosition.y}px)` : 'none',
+        }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative p-6">
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }} 
-            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 
-                     dark:text-gray-300 dark:hover:text-gray-100 p-1 rounded-full 
-                     hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        {/* Only render the close button if hideCloseButton is false */}
+        {!hideCloseButton && (
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             aria-label="Close modal"
-            type="button"
           >
-            <svg 
-              className="w-5 h-5" 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M6 18L18 6M6 6l12 12" 
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
+        )}
+        <div className="p-6">
           {children}
         </div>
       </div>

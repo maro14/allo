@@ -142,6 +142,8 @@ export const TaskDetailModal = ({
       onClose={onClose}
       maxWidth="max-w-lg"
       dragHandleRef={modalHeaderRef}
+      closeOnBackdropClick={true}
+      hideCloseButton={true}  // Add this prop to hide the X button
     >
       {error && (
         <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded dark:bg-red-900/30 dark:text-red-400 dark:border-red-700 animate-fadeIn">
