@@ -14,7 +14,7 @@ import {
   ArrowsUpDownIcon // Add for sorting
 } from '@heroicons/react/24/outline'
 import { LoadingSpinnerBoard } from '../components/Board/LoadingSpinnerBoard'
-import toast from 'react-hot-toast' // Add toast for notifications
+import toast, { Toaster } from 'react-hot-toast' // Update toast import
 
 // Define proper types for Board
 interface Board {
@@ -71,13 +71,37 @@ const Dashboard = () => {
       if (newBoard.success) {
         setBoards([newBoard.data, ...boards])
         setNewBoardName('')
-        toast.success('Board created successfully!')
+        toast.success('Board created successfully!', {
+          duration: 4000,
+          icon: '🎉',
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+        })
       } else {
-        toast.error(newBoard.error || 'Failed to create board')
+        toast.error(newBoard.error || 'Failed to create board', {
+          duration: 4000,
+          icon: '❌',
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+        })
       }
     } catch (err) {
       console.error('Error creating board:', err)
-      toast.error('Failed to create board. Please try again.')
+      toast.error('Failed to create board. Please try again.', {
+        duration: 4000,
+        icon: '❌',
+        style: {
+          borderRadius: '10px',
+          background: '#333',
+          color: '#fff',
+        },
+      })
     } finally {
       setIsCreating(false)
     }
@@ -126,11 +150,38 @@ const Dashboard = () => {
         ))
         setEditingBoard(null)
         setEditName('')
+        toast.success('Board updated successfully!', {
+          duration: 3000,
+          icon: '✅',
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+        })
       } else {
         console.error('Failed to update board:', result.error)
+        toast.error('Failed to update board', {
+          duration: 3000,
+          icon: '❌',
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+        })
       }
     } catch (err) {
       console.error('Error updating board:', err)
+      toast.error('Error updating board. Please try again.', {
+        duration: 3000,
+        icon: '❌',
+        style: {
+          borderRadius: '10px',
+          background: '#333',
+          color: '#fff',
+        },
+      })
     }
   }
 
@@ -148,17 +199,52 @@ const Dashboard = () => {
       
       if (result.success) {
         setBoards(boards.filter(board => board._id !== boardId))
+        toast.success('Board deleted successfully', {
+          duration: 3000,
+          icon: '🗑️',
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+        })
       } else {
         console.error('Failed to delete board:', result.error)
+        toast.error('Failed to delete board', {
+          duration: 3000,
+          icon: '❌',
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+        })
       }
     } catch (err) {
       console.error('Error deleting board:', err)
+      toast.error('Error deleting board. Please try again.', {
+        duration: 3000,
+        icon: '❌',
+        style: {
+          borderRadius: '10px',
+          background: '#333',
+          color: '#fff',
+        },
+      })
     }
   }
 
   // Update your return JSX with improved UI
   return (
     <DashboardLayout title="Dashboard" username={user?.firstName || 'User'} gridLayout={false}>
+      {/* Add Toaster component for toast notifications */}
+      <Toaster position="bottom-right" toastOptions={{
+        className: '',
+        style: {
+          maxWidth: '500px',
+        },
+      }} />
+      
       <div className="p-4 md:p-6 max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-4 md:mb-0 mr-3">

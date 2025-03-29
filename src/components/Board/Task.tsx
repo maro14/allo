@@ -127,10 +127,22 @@ export const Task = ({ task, index, columnId, onUpdate, onDelete, moveTask }: Ta
       'Bug': '#dc2626',
       'Feature': '#9333ea',
       'Documentation': '#f59e0b',
-      'Research': '#0891b2'
+      'Research': '#0891b2',
+      'Urgent': '#eab308'
     };
     
     return colors[label] || '#6b7280'; // Default gray
+  };
+
+  // Function to get priority color
+  const getPriorityColor = (priority?: string) => {
+    switch (priority) {
+      case 'urgent': return '#ef4444'; // Red
+      case 'high': return '#f97316';   // Orange
+      case 'medium': return '#eab308'; // Yellow
+      case 'low': return '#22c55e';    // Green
+      default: return '#6b7280';       // Gray
+    }
   };
 
   return (
@@ -147,6 +159,26 @@ export const Task = ({ task, index, columnId, onUpdate, onDelete, moveTask }: Ta
           <div className="w-2 h-2 bg-gray-300 dark:bg-gray-500 rounded-full cursor-grab active:cursor-grabbing" />
         </div>
 
+        {/* Description preview */}
+        {task.description && (
+          <p className="text-xs text-gray-600 dark:text-gray-300 mb-2 line-clamp-2">
+            {task.description}
+          </p>
+        )}
+
+        {/* Priority indicator */}
+        {task.priority && (
+          <div className="flex items-center gap-1 mb-2">
+            <span 
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: getPriorityColor(task.priority) }}
+            />
+            <span className="text-xs capitalize text-gray-600 dark:text-gray-400">
+              {task.priority}
+            </span>
+          </div>
+        )}
+
         {task.labels && task.labels.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {task.labels.map((label: string) => (
@@ -162,8 +194,14 @@ export const Task = ({ task, index, columnId, onUpdate, onDelete, moveTask }: Ta
         )}
 
         {totalSubtasks > 0 && (
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            {completedSubtasks}/{totalSubtasks} subtasks
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center">
+            <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 mr-2">
+              <div 
+                className="bg-blue-500 h-1.5 rounded-full" 
+                style={{ width: `${(completedSubtasks / totalSubtasks) * 100}%` }}
+              ></div>
+            </div>
+            {completedSubtasks}/{totalSubtasks}
           </div>
         )}
       </div>

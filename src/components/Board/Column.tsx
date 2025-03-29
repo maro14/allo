@@ -182,18 +182,34 @@ export const Column = ({
     setIsColumnModalOpen(false);
   };
 
+  // Add a drop target for the task list area
+  const [, taskListDrop] = useDrop({
+    accept: TASK_TYPE,
+    hover(item: { id: string; index: number; columnId: string; type: string }, monitor) {
+      // Only handle if it's coming from another column
+      if (item.columnId === column._id) return;
+      
+      // If the column is empty, we'll move the task to index 0
+      if (column.tasks.length === 0) {
+        moveTask(item.id, item.columnId, column._id, item.index, 0);
+        item.index = 0;
+        item.columnId = column._id;
+      }
+    }
+  });
+
   return (
     <div
-      ref={ref}
-      className={`bg-gray-100 dark:bg-gray-800 rounded-md w-96 flex-shrink-0 flex flex-col max-h-[calc(100vh-12rem)] ${
-        isDragging ? 'opacity-50' : ''
-      }`}
-      aria-roledescription="Draggable column"
-      aria-label={`Column ${column.title} with ${column.tasks?.length || 0} tasks`}
+      ref={(node) => {
+        ref.current = node;
+        drag(drop(node));
+      }}
+      className={`flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg shadow-sm 
+        min-w-[280px] max-w-[280px] h-full
+        ${isDragging ? 'opacity-50' : ''}`}
     >
-      <div 
-        className="p-3 font-medium flex justify-between items-center bg-gray-200 dark:bg-gray-700 rounded-t-md"
-      >
+      {/* Column header */}
+      <div className="p-3 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
         {/* Drag handle with icon */}
         <div 
           className="flex items-center cursor-grab active:cursor-grabbing"
