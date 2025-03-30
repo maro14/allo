@@ -90,14 +90,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // GET - Retrieve all columns for a board
     if (req.method === 'GET') {
+      // Extract pagination parameters from query
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
+      
+      // Get total count for pagination metadata
+      const totalCount = await Column.countDocuments({ boardId });
+      
       const columns = await Column.find({ boardId })
         .sort({ position: 1 })
+        .skip(skip)
+        .limit(limit)
         .populate({
           path: 'tasks',
           options: { sort: { position: 1 } }
         });
       
-      return res.status(200).json({ success: true, data: columns })
+      return res.status(200).json({ 
+        success: true, 
+        data: columns,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          pages: Math.ceil(totalCount / limit)
+        }
+      })
     }
     
     // PUT - Update a column

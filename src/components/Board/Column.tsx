@@ -52,6 +52,7 @@ interface ColumnProps {
   ) => void;
 }
 
+
 // Column item type
 const COLUMN_TYPE = 'column';
 const TASK_TYPE = 'task';

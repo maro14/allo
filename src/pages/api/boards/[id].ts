@@ -23,19 +23,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // GET /api/boards/[id] - Get a specific board
     if (req.method === 'GET') {
-      const board = await Board.findOne({ _id: id, userId })
-        .populate({
-          path: 'columns',
-          options: { sort: { position: 1 } },
-          populate: {
-            path: 'tasks',
-            options: { sort: { position: 1 } }
-          }
-        });
+      // Extract pagination parameters from query
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
+      
+      // Get the board without populating columns yet
+      const board = await Board.findOne({ _id: id, userId });
       
       if (!board) {
         return res.status(404).json({ success: false, error: 'Board not found' })
       }
+      
+      // Get total count of columns
+      const totalColumns = await Column.countDocuments({ boardId: id });
+      
+      // Get paginated columns
+      const columns = await Column.find({ boardId: id })
+        .sort({ position: 1 })
+        .skip(skip)
+        .limit(limit)
+        .populate({
+          path: 'tasks',
+          options: { sort: { position: 1 } }
+        });
+      
+      // Attach columns to board
+      board.columns = columns;
       
       if (!board.columns) {
         board.columns = [];
@@ -47,7 +61,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
       
-      return res.status(200).json({ success: true, data: board })
+      return res.status(200).json({ 
+        success: true, 
+        data: board,
+        pagination: {
+          total: totalColumns,
+          page,
+          limit,
+          pages: Math.ceil(totalColumns / limit)
+        }
+      })
     }
     
     // PUT /api/boards/[id] - Update a board
