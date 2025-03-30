@@ -77,6 +77,18 @@ export const TaskDetailModal = ({
       description: editedDescription,
       priority: editedPriority
     }
+    
+    console.log('Current description:', task.description)
+    console.log('Edited description:', editedDescription)
+    console.log('Sending update with data:', {
+      taskId: task._id,
+      updates: {
+        title: editedTitle,
+        description: editedDescription,
+        priority: editedPriority
+      }
+    })
+    
     setLocalTask(updatedTask)
     setIsEditing(false)
     
@@ -89,6 +101,7 @@ export const TaskDetailModal = ({
         description: editedDescription,
         priority: editedPriority
       })
+      console.log('Task update API call completed')
     } catch (err) {
       console.error('Failed to update task:', err)
       setError('Failed to update task. Please try again.')

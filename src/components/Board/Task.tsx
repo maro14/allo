@@ -39,6 +39,35 @@ export const Task = ({ task, index, columnId, onUpdate, onDelete, moveTask }: Ta
   const [isLoading, setIsLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
+  // Add the handleUpdateTask function here
+  const handleUpdateTask = async (taskId: string, updatedTask: Partial<TaskType>) => {
+    console.log('Task update requested:', taskId, updatedTask);
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedTask)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update task: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('Task update response:', result);
+      
+      // Update the task in the UI
+      if (onUpdate) {
+        onUpdate(taskId, updatedTask);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error updating task:', error);
+      throw error;
+    }
+  };
+
   if (!task || !task._id) {
     console.error('Invalid task data:', task);
     return null;
@@ -154,6 +183,7 @@ export const Task = ({ task, index, columnId, onUpdate, onDelete, moveTask }: Ta
           ${isDragging ? 'opacity-50' : ''}`}
         onClick={handleClick}
       >
+        {/* Task content */}
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-medium text-gray-900 dark:text-gray-100">{task.title}</h3>
           <div className="w-2 h-2 bg-gray-300 dark:bg-gray-500 rounded-full cursor-grab active:cursor-grabbing" />
@@ -207,11 +237,11 @@ export const Task = ({ task, index, columnId, onUpdate, onDelete, moveTask }: Ta
       </div>
 
       <TaskDetailModal
-        task={isModalOpen ? task : null}
+        task={task}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onDelete={onDelete}
-        onUpdate={onUpdate}
+        onUpdate={handleUpdateTask}
       />
     </>
   );
