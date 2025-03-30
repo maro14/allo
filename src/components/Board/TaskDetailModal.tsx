@@ -2,7 +2,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Modal } from '../ui/Modal'
 import { TaskType } from './Column'
-import { CheckIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { CheckIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { PrioritySelector } from './PrioritySelector'
 
 interface TaskDetailModalProps {
   task: TaskType | null
@@ -22,6 +23,7 @@ export const TaskDetailModal = ({
   const [isEditing, setIsEditing] = useState(false)
   const [editedTitle, setEditedTitle] = useState('')
   const [editedDescription, setEditedDescription] = useState('')
+  const [editedPriority, setEditedPriority] = useState('')
   const [completedSubtasks, setCompletedSubtasks] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -33,6 +35,7 @@ export const TaskDetailModal = ({
     if (task) {
       setEditedTitle(task.title)
       setEditedDescription(task.description || '')
+      setEditedPriority(task.priority || 'medium')
       setLocalTask(task)
       
       // Initialize completed subtasks from task data if available
@@ -43,10 +46,19 @@ export const TaskDetailModal = ({
       
       // Reset error state when task changes
       setError(null)
+      // Reset editing state when task changes
+      setIsEditing(false)
     }
   }, [task])
 
   if (!task) return null
+
+  // Add a keyboard handler for saving with Ctrl+Enter in text areas
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      handleSaveChanges();
+    }
+  }
 
   // Optimistic update for task changes
   const handleSaveChanges = async () => {
@@ -62,7 +74,8 @@ export const TaskDetailModal = ({
     const updatedTask = {
       ...task,
       title: editedTitle,
-      description: editedDescription
+      description: editedDescription,
+      priority: editedPriority
     }
     setLocalTask(updatedTask)
     setIsEditing(false)
@@ -73,7 +86,8 @@ export const TaskDetailModal = ({
     try {
       await onUpdate(task._id, {
         title: editedTitle,
-        description: editedDescription
+        description: editedDescription,
+        priority: editedPriority
       })
     } catch (err) {
       console.error('Failed to update task:', err)
@@ -82,6 +96,7 @@ export const TaskDetailModal = ({
       setLocalTask(previousTask)
       setEditedTitle(previousTask.title)
       setEditedDescription(previousTask.description || '')
+      setEditedPriority(previousTask.priority || 'medium')
       setIsEditing(true)
     } finally {
       setIsLoading(false)
@@ -179,15 +194,32 @@ export const TaskDetailModal = ({
             <>
               <button 
                 onClick={handleSaveChanges}
-                className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors"
+                className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors flex items-center gap-1"
                 aria-label="Save changes"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <span className="h-5 w-5 block rounded-full border-2 border-t-green-600 animate-spin" />
                 ) : (
-                  <CheckIcon className="h-5 w-5" />
+                  <>
+                    <CheckIcon className="h-5 w-5" />
+                    <span className="text-sm font-medium">Save</span>
+                  </>
                 )}
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditing(false)
+                  setEditedTitle(task.title)
+                  setEditedDescription(task.description || '')
+                  setEditedPriority(task.priority || 'medium')
+                  setError(null)
+                }}
+                className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                aria-label="Cancel editing"
+                disabled={isLoading}
+              >
+                <XMarkIcon className="h-5 w-5" />
               </button>
             </>
           ) : (
@@ -223,10 +255,12 @@ export const TaskDetailModal = ({
           <textarea
             value={editedDescription}
             onChange={(e) => setEditedDescription(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md 
                      bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-all"
             rows={4}
             placeholder="Add a description..."
+            disabled={isLoading}
           />
         ) : (
           <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap pl-3 border-l-2 border-gray-200 dark:border-gray-700">
@@ -305,26 +339,33 @@ export const TaskDetailModal = ({
       
       {/* Priority */}
       {displayTask.priority && (
-        <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
+        <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg mb-4">
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 flex items-center">
             <span className="inline-block w-1 h-4 bg-red-500 mr-2 rounded"></span>
             Priority
           </h3>
-          <div className="flex items-center">
-            <span 
-              className="h-3 w-3 rounded-full mr-2"
-              style={{ 
-                backgroundColor: 
-                  displayTask.priority === 'urgent' ? '#ef4444' :
-                  displayTask.priority === 'high' ? '#f97316' :
-                  displayTask.priority === 'medium' ? '#eab308' :
-                  '#22c55e' // low
-              }}
+          {isEditing ? (
+            <PrioritySelector 
+              priority={editedPriority} 
+              onChange={setEditedPriority} 
             />
-            <span className="text-gray-700 dark:text-gray-300 capitalize font-medium">
-              {displayTask.priority}
-            </span>
-          </div>
+          ) : (
+            <div className="flex items-center">
+              <span 
+                className="h-3 w-3 rounded-full mr-2"
+                style={{ 
+                  backgroundColor: 
+                    displayTask.priority === 'urgent' ? '#ef4444' :
+                    displayTask.priority === 'high' ? '#f97316' :
+                    displayTask.priority === 'medium' ? '#eab308' :
+                    '#22c55e' // low
+                }}
+              />
+              <span className="text-gray-700 dark:text-gray-300 capitalize font-medium">
+                {displayTask.priority || 'medium'}
+              </span>
+            </div>
+          )}
         </div>
       )}
     </Modal>

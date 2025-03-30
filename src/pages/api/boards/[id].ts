@@ -28,6 +28,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
       
+      // Add option to include all columns without pagination
+      const includeAll = req.query.includeAll === 'true';
+      
       // Get the board without populating columns yet
       const board = await Board.findOne({ _id: id, userId });
       
@@ -38,15 +41,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Get total count of columns
       const totalColumns = await Column.countDocuments({ boardId: id });
       
-      // Get paginated columns
-      const columns = await Column.find({ boardId: id })
-        .sort({ position: 1 })
-        .skip(skip)
-        .limit(limit)
-        .populate({
-          path: 'tasks',
-          options: { sort: { position: 1 } }
-        });
+      // Get columns - either all or paginated
+      let columnsQuery = Column.find({ boardId: id }).sort({ position: 1 });
+      
+      // Apply pagination only if not including all
+      if (!includeAll) {
+        columnsQuery = columnsQuery.skip(skip).limit(limit);
+      }
+      
+      // Execute query with population
+      const columns = await columnsQuery.populate({
+        path: 'tasks',
+        options: { sort: { position: 1 } }
+      });
       
       // Attach columns to board
       board.columns = columns;
@@ -55,11 +62,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         board.columns = [];
       }
       
+      // Ensure tasks array exists for each column
       board.columns.forEach(column => {
         if (!column.tasks) {
           column.tasks = [];
         }
       });
+      
+      // Add last accessed timestamp
+      await Board.findByIdAndUpdate(id, { 
+        lastAccessed: new Date() 
+      }, { new: false });
       
       return res.status(200).json({ 
         success: true, 
@@ -68,7 +81,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           total: totalColumns,
           page,
           limit,
-          pages: Math.ceil(totalColumns / limit)
+          pages: Math.ceil(totalColumns / limit),
+          includeAll
         }
       })
     }

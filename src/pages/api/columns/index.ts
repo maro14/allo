@@ -95,17 +95,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
       
+      // Add option to include all columns without pagination
+      const includeAll = req.query.includeAll === 'true';
+      
       // Get total count for pagination metadata
       const totalCount = await Column.countDocuments({ boardId });
       
-      const columns = await Column.find({ boardId })
-        .sort({ position: 1 })
-        .skip(skip)
-        .limit(limit)
-        .populate({
-          path: 'tasks',
-          options: { sort: { position: 1 } }
-        });
+      // Create base query
+      let columnsQuery = Column.find({ boardId }).sort({ position: 1 });
+      
+      // Apply pagination only if not including all columns
+      if (!includeAll) {
+        columnsQuery = columnsQuery.skip(skip).limit(limit);
+      }
+      
+      // Execute query with population
+      const columns = await columnsQuery.populate({
+        path: 'tasks',
+        options: { sort: { position: 1 } }
+      });
       
       return res.status(200).json({ 
         success: true, 
@@ -114,9 +122,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           total: totalCount,
           page,
           limit,
-          pages: Math.ceil(totalCount / limit)
+          pages: Math.ceil(totalCount / limit),
+          includeAll
         }
-      })
+      });
     }
     
     // PUT - Update a column
@@ -197,14 +206,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .session(session);
           
           // Update positions to ensure no gaps
-          const updateOperations = remainingColumns.map((col, index) => ({
-            updateOne: {
-              filter: { _id: col._id },
-              update: { position: index }
-            }
-          }));
-          
-          if (updateOperations.length > 0) {
+          if (remainingColumns.length > 0) {
+            const updateOperations = remainingColumns.map((col, index) => ({
+              updateOne: {
+                filter: { _id: col._id },
+                update: { position: index }
+              }
+            }));
+            
             await Column.bulkWrite(updateOperations, { session });
           }
         });
