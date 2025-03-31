@@ -39,7 +39,6 @@ export const Task = ({ task, index, columnId, onUpdate, onDelete, moveTask }: Ta
   const [isLoading, setIsLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Add the handleUpdateTask function here
   const handleUpdateTask = async (taskId: string, updatedTask: Partial<TaskType>) => {
     console.log('Task update requested:', taskId, updatedTask);
     try {
@@ -56,7 +55,6 @@ export const Task = ({ task, index, columnId, onUpdate, onDelete, moveTask }: Ta
       const result = await response.json();
       console.log('Task update response:', result);
       
-      // Update the task in the UI
       if (onUpdate) {
         onUpdate(taskId, updatedTask);
       }

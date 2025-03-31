@@ -146,11 +146,39 @@ export const Column = ({
   // Drop functionality for tasks
   const [, dropTask] = useDrop({
     accept: TASK_TYPE,
+    hover(item: { id: string; index: number; columnId: string; type: string }, monitor) {
+      // Only handle if it's coming from another column
+      if (item.columnId === column._id) return;
+      
+      // If the column is empty, we'll move the task to index 0
+      if (column.tasks.length === 0) {
+        moveTask(item.id, item.columnId, column._id, item.index, 0);
+        item.index = 0;
+        item.columnId = column._id;
+      }
+    },
     drop: () => ({ columnId: column._id }),
+  });
+
+  // Add a drop target for the task list area
+  const [, taskListDrop] = useDrop({
+    accept: TASK_TYPE,
+    hover(item: { id: string; index: number; columnId: string; type: string }, monitor) {
+      // Only handle if it's coming from another column
+      if (item.columnId === column._id) return;
+      
+      // If the column is empty, we'll move the task to index 0
+      if (column.tasks.length === 0) {
+        moveTask(item.id, item.columnId, column._id, item.index, 0);
+        item.index = 0;
+        item.columnId = column._id;
+      }
+    }
   });
 
   // Connect the drag and drop refs
   drag(drop(ref));
+  taskListDrop(ref);
 
   const handleTaskCreated = (newTask: TaskType) => {
     console.log('New task created:', newTask);
@@ -182,22 +210,6 @@ export const Column = ({
     }
     setIsColumnModalOpen(false);
   };
-
-  // Add a drop target for the task list area
-  const [, taskListDrop] = useDrop({
-    accept: TASK_TYPE,
-    hover(item: { id: string; index: number; columnId: string; type: string }, monitor) {
-      // Only handle if it's coming from another column
-      if (item.columnId === column._id) return;
-      
-      // If the column is empty, we'll move the task to index 0
-      if (column.tasks.length === 0) {
-        moveTask(item.id, item.columnId, column._id, item.index, 0);
-        item.index = 0;
-        item.columnId = column._id;
-      }
-    }
-  });
 
   return (
     <div
