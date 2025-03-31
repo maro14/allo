@@ -72,22 +72,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       task.columnId = destinationColumnId;
       await task.save();
 
-      // Update source and destination columns
-      await Promise.all([
-        Column.findByIdAndUpdate(sourceColumnId, {
-          $pull: { tasks: taskId },
-          updatedAt: new Date()
-        }),
-        Column.findByIdAndUpdate(destinationColumnId, {
-          $push: {
-            tasks: {
-              $each: [taskId],
-              $position: destinationIndex
-            }
-          },
-          updatedAt: new Date()
-        })
-      ]);
+      // Handle moving to an empty column
+      if (destColumn.tasks.length === 0 && destinationIndex === 0) {
+        await Promise.all([
+          Column.findByIdAndUpdate(sourceColumnId, {
+            $pull: { tasks: taskId },
+            updatedAt: new Date()
+          }),
+          Column.findByIdAndUpdate(destinationColumnId, {
+            $set: { tasks: [taskId] },
+            updatedAt: new Date()
+          })
+        ]);
+      } else {
+        // Update source and destination columns (existing logic for non-empty columns)
+        await Promise.all([
+          Column.findByIdAndUpdate(sourceColumnId, {
+            $pull: { tasks: taskId },
+            updatedAt: new Date()
+          }),
+          Column.findByIdAndUpdate(destinationColumnId, {
+            $push: {
+              tasks: {
+                $each: [taskId],
+                $position: destinationIndex
+              }
+            },
+            updatedAt: new Date()
+          })
+        ]);
+      }
     } 
     // Handle regular task update
     else if (Object.keys(updateData).length > 0) {

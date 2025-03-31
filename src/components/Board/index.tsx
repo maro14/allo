@@ -157,9 +157,9 @@ const Board = ({ boardId }: BoardProps) => {
       // Update local state
       setBoard({ ...board, columns: updatedColumns });
       
-      // Send update to server
+      // Send update to server - using the main task update endpoint instead of a dedicated move endpoint
       try {
-        await fetch(`/api/tasks/${taskId}/move`, {
+        await fetch(`/api/tasks/${taskId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -182,6 +182,7 @@ const Board = ({ boardId }: BoardProps) => {
   
       // If no destination or dropped in same position, do nothing
       if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
+        setIsReordering(false);
         return;
       }
   
@@ -242,8 +243,8 @@ const Board = ({ boardId }: BoardProps) => {
         // Update local state
         setBoard({ ...board!, columns: updatedColumns });
         
-        // Send update to server
-        await fetch(`/api/tasks/${taskId}/move`, {
+        // Send update to server - using the main task update endpoint
+        await fetch(`/api/tasks/${taskId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -255,39 +256,37 @@ const Board = ({ boardId }: BoardProps) => {
       }
     } catch (error) {
       console.error('Error during drag and drop:', error);
-      // Optionally refresh the board to ensure UI is in sync with server
-      // fetchBoard();
     } finally {
       setIsReordering(false);
     }
   };
 
   const updateTaskOrder = async (
-    sourceColumn: Column,
-    destColumn: Column,
-    source: { index: number },
-    destination: { index: number },
-    taskId: string
-  ) => {
-    try {
-      const response = await fetch(`/api/tasks/${taskId}/move`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sourceColumnId: sourceColumn._id,
-          destinationColumnId: destColumn._id,
-          destinationIndex: destination.index,
-        }),
-      });
-  
-      if (!response.ok) {
-        throw new Error('Failed to update task order');
+      sourceColumn: Column,
+      destColumn: Column,
+      source: { index: number },
+      destination: { index: number },
+      taskId: string
+    ) => {
+      try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourceColumnId: sourceColumn._id,
+            destinationColumnId: destColumn._id,
+            destinationIndex: destination.index,
+          }),
+        });
+    
+        if (!response.ok) {
+          throw new Error('Failed to update task order');
+        }
+      } catch (err) {
+        console.error('Error updating task order:', err);
+        alert('Failed to update task order');
       }
-    } catch (err) {
-      console.error('Error updating task order:', err);
-      alert('Failed to update task order');
-    }
-  };
+    };
 
   const updateColumnOrder = async (columns: Column[]) => {
     try {
@@ -418,7 +417,13 @@ const Board = ({ boardId }: BoardProps) => {
   // Main render
   return (
     <div className="h-full w-full overflow-auto bg-white dark:bg-gray-900">
-      {isReordering && <LoadingSpinnerBoard size="sm" message="Reordering..." />}
+      {isReordering && (
+        <div className="fixed inset-0 bg-black bg-opacity-20 z-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
+            <LoadingSpinnerBoard size="sm" message="Reordering..." />
+          </div>
+        </div>
+      )}
       <div className="p-4 h-full">
         <h1 className="text-2xl font-bold mb-4">{board?.name}</h1>
         <DragDropProvider>

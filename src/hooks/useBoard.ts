@@ -1,6 +1,7 @@
 // src/hooks/useBoard.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/router';
+import { toast } from 'react-hot-toast';
 
 // Types
 interface Task {
@@ -27,11 +28,11 @@ interface Board {
 }
 
 // Fetch a board by ID
-// Update the useBoard function to handle auth errors better
 export const useBoard = (boardId: string) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   
-  return useQuery({
+  const boardQuery = useQuery({
     queryKey: ['board', boardId],
     queryFn: async (): Promise<Board> => {
       try {
@@ -39,7 +40,13 @@ export const useBoard = (boardId: string) => {
         
         if (res.status === 401) {
           // Handle unauthorized specifically
+          router.push('/login?error=session_expired');
           throw new Error('401: Your session has expired');
+        }
+        
+        if (res.status === 404) {
+          router.push('/boards?error=board_not_found');
+          throw new Error('404: Board not found');
         }
         
         if (!res.ok) {
@@ -55,14 +62,46 @@ export const useBoard = (boardId: string) => {
     },
     enabled: !!boardId,
     retry: (failureCount, error) => {
-      // Don't retry on authentication errors
-      if (error instanceof Error && error.message.includes('401')) {
+      // Don't retry on authentication or not found errors
+      if (error instanceof Error && (error.message.includes('401') || error.message.includes('404'))) {
         return false;
       }
       // Retry other errors up to 3 times
       return failureCount < 3;
     }
   });
+
+  // Update board mutation
+  const updateBoard = useMutation({
+    mutationFn: async (updates: Partial<Board>) => {
+      const res = await fetch(`/api/boards/${boardId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to update board');
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('Board updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['board', boardId] });
+      queryClient.invalidateQueries({ queryKey: ['boardName', boardId] });
+    },
+    onError: (error) => {
+      toast.error(`Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+  
+  return {
+    ...boardQuery,
+    updateBoard: updateBoard.mutate,
+    isUpdating: updateBoard.isPending,
+    updateError: updateBoard.error
+  };
 };
 
 // Fetch just the board name (for page title)
@@ -74,9 +113,9 @@ export const useBoardName = (boardId: string) => {
       if (!res.ok) {
         throw new Error('Failed to fetch board');
       }
-      return res.json();
+      const data = await res.json();
+      return { name: data.data.name };
     },
-    select: (data) => ({ name: data.name }),
     enabled: !!boardId,
   });
 };
@@ -102,6 +141,9 @@ export const useReorderColumns = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['board', variables.boardId] });
     },
+    onError: () => {
+      toast.error('Failed to reorder columns');
+    }
   });
 };
 
@@ -126,6 +168,9 @@ export const useReorderTasks = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board'] });
     },
+    onError: () => {
+      toast.error('Failed to reorder tasks');
+    }
   });
 };
 
@@ -164,5 +209,8 @@ export const useMoveTask = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board'] });
     },
+    onError: () => {
+      toast.error('Failed to move task');
+    }
   });
 };
