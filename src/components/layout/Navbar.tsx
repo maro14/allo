@@ -3,39 +3,39 @@ import Link from 'next/link'
 import { useAuth, UserButton } from '@clerk/nextjs'
 import { Bars3Icon } from '@heroicons/react/24/solid'
 import { PencilSquareIcon, HomeIcon, MoonIcon, SunIcon } from '@heroicons/react/24/outline'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 export const Navbar = () => {
   const { isSignedIn } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  // Remove isDarkMode state and useEffect
 
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-50">
+    <nav className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         {/* Logo */}
         <Link href="/">
-          <span className="text-xl font-bold text-blue-600 flex items-center">
-            <span className="bg-blue-600 text-white rounded-md p-1 mr-1">A</span>
+          <span className="text-xl font-bold text-blue-600 flex items-center hover:text-blue-700 transition-colors">
+            <span className="bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-md p-1 mr-1">A</span>
             llo
           </span>
         </Link>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu Button */}
         <div className="md:hidden flex items-center gap-3">
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="text-gray-600"
+            className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="Menu"
           >
             <Bars3Icon className="h-6 w-6" />
           </button>
         </div>
 
         {/* Desktop Menu */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-2">
           <Link href="/">
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all">
-              <HomeIcon className="h-4 w-4" />
+            <span className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 transition-all">
+              <HomeIcon className="h-5 w-5" />
               Home
             </span>
           </Link>
@@ -43,23 +43,25 @@ export const Navbar = () => {
           {isSignedIn ? (
             <>
               <Link href="/dashboard">
-                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-all">
-                  <PencilSquareIcon className="h-4 w-4" />
+                <span className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50/50 transition-all">
+                  <PencilSquareIcon className="h-5 w-5" />
                   Boards
                 </span>
               </Link>
               
-              <UserButton afterSignOutUrl="/" />
+              <div className="ml-2">
+                <UserButton afterSignOutUrl="/" />
+              </div>
             </>
           ) : (
             <>
               <Link href="/sign-in">
-                <button className="text-gray-700 hover:text-blue-500 transition-colors">
+                <button className="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors">
                   Sign In
                 </button>
               </Link>
               <Link href="/sign-up">
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <button className="bg-gradient-to-br from-blue-600 to-blue-500 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all shadow-sm">
                   Sign Up
                 </button>
               </Link>
@@ -70,40 +72,44 @@ export const Navbar = () => {
 
       {/* Mobile Menu Dropdown */}
       {isMenuOpen && (
-        <div className="md:hidden p-4 bg-white border-t">
-          <Link href="/">
-            <span className="flex items-center gap-2 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg px-4 transition-all">
-              <HomeIcon className="h-5 w-5" />
-              Home
-            </span>
-          </Link>
-          
-          {isSignedIn ? (
-            <>
-              <Link href="/dashboard">
-                <span className="flex items-center gap-2 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg px-4 transition-all">
-                  <PencilSquareIcon className="h-5 w-5" />
-                  Boards
-                </span>
-              </Link>
-              <div className="mt-2 flex justify-center">
-                <UserButton afterSignOutUrl="/" />
-              </div>
-            </>
-          ) : (
-            <>
-              <Link href="/sign-in">
-                <button className="w-full text-left py-2 text-gray-700 hover:bg-gray-100 rounded-lg px-4">
-                  Sign In
-                </button>
-              </Link>
-              <Link href="/sign-up">
-                <button className="w-full py-2 mt-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center">
-                  Sign Up
-                </button>
-              </Link>
-            </>
-          )}
+        <div className="md:hidden bg-white/95 backdrop-blur-sm border-t border-gray-100">
+          <div className="px-4 py-3 space-y-1">
+            <Link href="/">
+              <span className="flex items-center gap-3 py-2 px-3 text-gray-700 hover:bg-blue-50/50 hover:text-blue-600 rounded-lg transition-all">
+                <HomeIcon className="h-5 w-5" />
+                Home
+              </span>
+            </Link>
+            
+            {isSignedIn ? (
+              <>
+                <Link href="/dashboard">
+                  <span className="flex items-center gap-3 py-2 px-3 text-gray-700 hover:bg-blue-50/50 hover:text-blue-600 rounded-lg transition-all">
+                    <PencilSquareIcon className="h-5 w-5" />
+                    Boards
+                  </span>
+                </Link>
+                <div className="pt-2 border-t border-gray-100 mt-2">
+                  <div className="flex justify-center">
+                    <UserButton afterSignOutUrl="/" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <Link href="/sign-in">
+                  <button className="w-full text-left py-2 px-3 text-gray-700 hover:bg-blue-50/50 hover:text-blue-600 rounded-lg transition-all">
+                    Sign In
+                  </button>
+                </Link>
+                <Link href="/sign-up">
+                  <button className="w-full py-2.5 mt-2 bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all">
+                    Sign Up
+                  </button>
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       )}
     </nav>
