@@ -1,6 +1,3 @@
-Here's an updated version of your README with improved organization and additional details:
-
-```markdown:c:\Users\tehes\Documents\web-development\fullstack\allo\README.md
 # Allo - Modern Kanban Board Application
 
 ![Allo Screenshot](public/screenshot.png) *Add a screenshot here*

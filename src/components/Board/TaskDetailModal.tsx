@@ -4,6 +4,7 @@ import { Modal } from '../ui/Modal'
 import { TaskType } from './Column'
 import { CheckIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { PrioritySelector } from './PrioritySelector'
+import { ConfirmationModal } from '../ui/ConfirmationModal' // Add this import
 
 interface TaskDetailModalProps {
   task: TaskType | null
@@ -117,20 +118,33 @@ export const TaskDetailModal = ({
   }
 
   // Optimistic update for task deletion
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  // Replace window.confirm with custom modal
   const handleDeleteTask = async () => {
     if (!task || !onDelete) return
     
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      // Close modal immediately for better UX
-      onClose()
-      
-      try {
-        await onDelete(task._id)
-      } catch (err) {
-        console.error('Failed to delete task:', err)
-        // Could show a toast notification here
-      }
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    setIsDeleting(true)
+    onClose()
+    
+    try {
+      await onDelete(task._id)
+    } catch (err) {
+      console.error('Failed to delete task:', err)
+      // Could show a toast notification here
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
     }
+  }
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false)
   }
 
   // Optimistic update for subtask toggling
@@ -247,10 +261,18 @@ export const TaskDetailModal = ({
               {onDelete && (
                 <button 
                   onClick={handleDeleteTask}
-                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors flex items-center gap-1"
                   aria-label="Delete task"
+                  disabled={isLoading}
                 >
-                  <TrashIcon className="h-5 w-5" />
+                  {isLoading ? (
+                    <span className="h-5 w-5 block rounded-full border-2 border-t-red-500 animate-spin" />
+                  ) : (
+                    <>
+                      <TrashIcon className="h-5 w-5" />
+                      <span className="text-sm font-medium">Delete</span>
+                    </>
+                  )}
                 </button>
               )}
             </>
@@ -384,3 +406,15 @@ export const TaskDetailModal = ({
     </Modal>
   )
 }
+
+{/* Add confirmation modal */}
+{ConfirmationModal
+isOpen={showDeleteConfirm}
+onClose={cancelDelete}
+title="Delete Task"
+message="Are you sure you want to delete this task? This action cannot be undone."
+confirmText={isDeleting ? "Deleting..." : "Delete"}
+onConfirm={confirmDelete}
+confirmVariant="danger"
+isLoading={isDeleting}
+/>
