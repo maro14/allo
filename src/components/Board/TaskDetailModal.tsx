@@ -179,242 +179,243 @@ export const TaskDetailModal = ({
   const displayTask = localTask || task
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose}
-      maxWidth="max-w-lg"
-      dragHandleRef={modalHeaderRef}
-      closeOnBackdropClick={true}
-      hideCloseButton={true}  // Add this prop to hide the X button
-    >
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded dark:bg-red-900/30 dark:text-red-400 dark:border-red-700 animate-fadeIn">
-          {error}
-        </div>
-      )}
-      
-      <div 
-        ref={modalHeaderRef} 
-        className="flex justify-between items-center mb-6 cursor-move group"
-        aria-label="Task details"
+    <>
+      <Modal 
+        isOpen={isOpen} 
+        onClose={onClose}
+        maxWidth="max-w-lg"
+        dragHandleRef={modalHeaderRef}
+        closeOnBackdropClick={true}
+        hideCloseButton={true}  // Add this prop to hide the X button
       >
-        {isEditing ? (
-          <input
-            type="text"
-            value={editedTitle}
-            onChange={(e) => setEditedTitle(e.target.value)}
-            className="text-xl font-medium w-full p-2 border-b-2 border-gray-300 dark:border-gray-600 
-                     bg-transparent focus:outline-none focus:border-blue-500 transition-colors"
-            placeholder="Task title"
-            aria-label="Edit task title"
-            disabled={isLoading}
-            autoFocus
-          />
-        ) : (
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-            {displayTask.title}
-          </h2>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded dark:bg-red-900/30 dark:text-red-400 dark:border-red-700 animate-fadeIn">
+            {error}
+          </div>
         )}
         
-        <div className="flex items-center gap-2">
+        <div 
+          ref={modalHeaderRef} 
+          className="flex justify-between items-center mb-6 cursor-move group"
+          aria-label="Task details"
+        >
           {isEditing ? (
-            <>
-              <button 
-                onClick={handleSaveChanges}
-                className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors flex items-center gap-1"
-                aria-label="Save changes"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <span className="h-5 w-5 block rounded-full border-2 border-t-green-600 animate-spin" />
-                ) : (
-                  <>
-                    <CheckIcon className="h-5 w-5" />
-                    <span className="text-sm font-medium">Save</span>
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setIsEditing(false)
-                  setEditedTitle(task.title)
-                  setEditedDescription(task.description || '')
-                  setEditedPriority(task.priority || 'medium')
-                  setError(null)
-                }}
-                className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                aria-label="Cancel editing"
-                disabled={isLoading}
-              >
-                <XMarkIcon className="h-5 w-5" />
-              </button>
-            </>
+            <input
+              type="text"
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              className="text-xl font-medium w-full p-2 border-b-2 border-gray-300 dark:border-gray-600 
+                       bg-transparent focus:outline-none focus:border-blue-500 transition-colors"
+              placeholder="Task title"
+              aria-label="Edit task title"
+              disabled={isLoading}
+              autoFocus
+            />
           ) : (
-            <>
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                aria-label="Edit task"
-              >
-                <PencilIcon className="h-5 w-5" />
-              </button>
-              {onDelete && (
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              {displayTask.title}
+            </h2>
+          )}
+          
+          <div className="flex items-center gap-2">
+            {isEditing ? (
+              <>
                 <button 
-                  onClick={handleDeleteTask}
-                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors flex items-center gap-1"
-                  aria-label="Delete task"
+                  onClick={handleSaveChanges}
+                  className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors flex items-center gap-1"
+                  aria-label="Save changes"
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <span className="h-5 w-5 block rounded-full border-2 border-t-red-500 animate-spin" />
+                    <span className="h-5 w-5 block rounded-full border-2 border-t-green-600 animate-spin" />
                   ) : (
                     <>
-                      <TrashIcon className="h-5 w-5" />
-                      <span className="text-sm font-medium">Delete</span>
+                      <CheckIcon className="h-5 w-5" />
+                      <span className="text-sm font-medium">Save</span>
                     </>
                   )}
                 </button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-      
-      {/* Description */}
-      <div className="mb-8 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
-        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 flex items-center">
-          <span className="inline-block w-1 h-4 bg-blue-500 mr-2 rounded"></span>
-          Description
-        </h3>
-        {isEditing ? (
-          <textarea
-            value={editedDescription}
-            onChange={(e) => setEditedDescription(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md 
-                     bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-all"
-            rows={4}
-            placeholder="Add a description..."
-            disabled={isLoading}
-          />
-        ) : (
-          <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap pl-3 border-l-2 border-gray-200 dark:border-gray-700">
-            {displayTask.description || "No description provided."}
-          </p>
-        )}
-      </div>
-      
-      {/* Subtasks */}
-      {displayTask.subtasks && displayTask.subtasks.length > 0 && (
-        <div className="mb-8 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 flex items-center">
-            <span className="inline-block w-1 h-4 bg-purple-500 mr-2 rounded"></span>
-            Subtasks ({completedSubtasks.length}/{displayTask.subtasks.length})
-          </h3>
-          <div className="space-y-2">
-            {displayTask.subtasks.map((subtask) => (
-              <div 
-                key={subtask._id} 
-                className="flex items-center p-3 bg-white dark:bg-gray-700 rounded-md shadow-sm hover:shadow transition-shadow"
-              >
-                <input
-                  type="checkbox"
-                  checked={completedSubtasks.includes(subtask._id)}
-                  onChange={() => toggleSubtask(subtask._id)}
-                  className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                />
-                <span 
-                  className={`ml-3 ${
-                    completedSubtasks.includes(subtask._id) 
-                      ? 'line-through text-gray-400 dark:text-gray-500' 
-                      : 'text-gray-700 dark:text-gray-300'
-                  } transition-colors`}
+                <button
+                  onClick={() => {
+                    setIsEditing(false)
+                    setEditedTitle(task.title)
+                    setEditedDescription(task.description || '')
+                    setEditedPriority(task.priority || 'medium')
+                    setError(null)
+                  }}
+                  className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                  aria-label="Cancel editing"
+                  disabled={isLoading}
                 >
-                  {subtask.title}
-                </span>
-              </div>
-            ))}
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                  aria-label="Edit task"
+                >
+                  <PencilIcon className="h-5 w-5" />
+                </button>
+                {onDelete && (
+                  <button 
+                    onClick={handleDeleteTask}
+                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors flex items-center gap-1"
+                    aria-label="Delete task"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <span className="h-5 w-5 block rounded-full border-2 border-t-red-500 animate-spin" />
+                    ) : (
+                      <>
+                        <TrashIcon className="h-5 w-5" />
+                        <span className="text-sm font-medium">Delete</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
-      )}
-      
-      {/* Labels */}
-      {displayTask.labels && displayTask.labels.length > 0 && (
+        
+        {/* Description */}
         <div className="mb-8 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
           <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 flex items-center">
-            <span className="inline-block w-1 h-4 bg-yellow-500 mr-2 rounded"></span>
-            Labels
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {displayTask.labels.map((label) => {
-              // Find the label color from your LABELS constant
-              const labelColor = 
-                ['Design', 'Development', 'Testing', 'Urgent'].includes(label)
-                  ? {
-                      'Design': '#ef4444',
-                      'Development': '#2563eb',
-                      'Testing': '#16a34a',
-                      'Urgent': '#eab308'
-                    }[label]
-                  : '#9ca3af';
-                  
-              return (
-                <span 
-                  key={label}
-                  className="px-3 py-1 rounded-full text-xs font-medium text-white shadow-sm"
-                  style={{ backgroundColor: labelColor }}
-                >
-                  {label}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      
-      {/* Priority */}
-      {displayTask.priority && (
-        <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg mb-4">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 flex items-center">
-            <span className="inline-block w-1 h-4 bg-red-500 mr-2 rounded"></span>
-            Priority
+            <span className="inline-block w-1 h-4 bg-blue-500 mr-2 rounded"></span>
+            Description
           </h3>
           {isEditing ? (
-            <PrioritySelector 
-              priority={editedPriority} 
-              onChange={setEditedPriority} 
+            <textarea
+              value={editedDescription}
+              onChange={(e) => setEditedDescription(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md 
+                       bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-all"
+              rows={4}
+              placeholder="Add a description..."
+              disabled={isLoading}
             />
           ) : (
-            <div className="flex items-center">
-              <span 
-                className="h-3 w-3 rounded-full mr-2"
-                style={{ 
-                  backgroundColor: 
-                    displayTask.priority === 'urgent' ? '#ef4444' :
-                    displayTask.priority === 'high' ? '#f97316' :
-                    displayTask.priority === 'medium' ? '#eab308' :
-                    '#22c55e' // low
-                }}
-              />
-              <span className="text-gray-700 dark:text-gray-300 capitalize font-medium">
-                {displayTask.priority || 'medium'}
-              </span>
-            </div>
+            <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap pl-3 border-l-2 border-gray-200 dark:border-gray-700">
+              {displayTask.description || "No description provided."}
+            </p>
           )}
         </div>
-      )}
-    </Modal>
+        
+        {/* Subtasks */}
+        {displayTask.subtasks && displayTask.subtasks.length > 0 && (
+          <div className="mb-8 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 flex items-center">
+              <span className="inline-block w-1 h-4 bg-purple-500 mr-2 rounded"></span>
+              Subtasks ({completedSubtasks.length}/{displayTask.subtasks.length})
+            </h3>
+            <div className="space-y-2">
+              {displayTask.subtasks.map((subtask) => (
+                <div 
+                  key={subtask._id} 
+                  className="flex items-center p-3 bg-white dark:bg-gray-700 rounded-md shadow-sm hover:shadow transition-shadow"
+                >
+                  <input
+                    type="checkbox"
+                    checked={completedSubtasks.includes(subtask._id)}
+                    onChange={() => toggleSubtask(subtask._id)}
+                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  <span 
+                    className={`ml-3 ${
+                      completedSubtasks.includes(subtask._id) 
+                        ? 'line-through text-gray-400 dark:text-gray-500' 
+                        : 'text-gray-700 dark:text-gray-300'
+                    } transition-colors`}
+                  >
+                    {subtask.title}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Labels */}
+        {displayTask.labels && displayTask.labels.length > 0 && (
+          <div className="mb-8 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 flex items-center">
+              <span className="inline-block w-1 h-4 bg-yellow-500 mr-2 rounded"></span>
+              Labels
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {displayTask.labels.map((label) => {
+                // Find the label color from your LABELS constant
+                const labelColor = 
+                  ['Design', 'Development', 'Testing', 'Urgent'].includes(label)
+                    ? {
+                        'Design': '#ef4444',
+                        'Development': '#2563eb',
+                        'Testing': '#16a34a',
+                        'Urgent': '#eab308'
+                      }[label]
+                    : '#9ca3af';
+                    
+                return (
+                  <span 
+                    key={label}
+                    className="px-3 py-1 rounded-full text-xs font-medium text-white shadow-sm"
+                    style={{ backgroundColor: labelColor }}
+                  >
+                    {label}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        
+        {/* Priority */}
+        {displayTask.priority && (
+          <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg mb-4">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 flex items-center">
+              <span className="inline-block w-1 h-4 bg-red-500 mr-2 rounded"></span>
+              Priority
+            </h3>
+            {isEditing ? (
+              <PrioritySelector 
+                priority={editedPriority} 
+                onChange={setEditedPriority} 
+              />
+            ) : (
+              <div className="flex items-center">
+                <span 
+                  className="h-3 w-3 rounded-full mr-2"
+                  style={{ 
+                    backgroundColor: 
+                      displayTask.priority === 'urgent' ? '#ef4444' :
+                      displayTask.priority === 'high' ? '#f97316' :
+                      displayTask.priority === 'medium' ? '#eab308' :
+                      '#22c55e' // low
+                  }}
+                />
+                <span className="text-gray-700 dark:text-gray-300 capitalize font-medium">
+                  {displayTask.priority || 'medium'}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+    </>
   )
-}
 
-{/* Add confirmation modal */}
-{ConfirmationModal
-isOpen={showDeleteConfirm}
-onClose={cancelDelete}
-title="Delete Task"
-message="Are you sure you want to delete this task? This action cannot be undone."
-confirmText={isDeleting ? "Deleting..." : "Delete"}
-onConfirm={confirmDelete}
-confirmVariant="danger"
-isLoading={isDeleting}
-/>
+  {/* Add confirmation modal inside the fragment */}
+  <ConfirmationModal
+    isOpen={showDeleteConfirm}
+    onClose={cancelDelete}
+    title="Delete Task"
+    message="Are you sure you want to delete this task? This action cannot be undone."
+    confirmText={isDeleting ? "Deleting..." : "Delete"}
+    onConfirm={confirmDelete}
+    confirmVariant="danger"
+    isLoading={isDeleting}
+  />
