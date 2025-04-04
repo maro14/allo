@@ -1,5 +1,6 @@
 import { getAuth } from '@clerk/nextjs/server';
 import type { NextApiRequest, NextApiResponse } from 'next';
+import mongoose from 'mongoose';
 import Board from '../../../models/Board';
 import dbConnect from '../../../lib/mongodb';
 
