@@ -1,5 +1,5 @@
 // src/hooks/useDraggable.ts
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 
 interface Position {
   x: number
@@ -13,14 +13,22 @@ interface Boundary {
   maxY?: number
 }
 
+interface UseDraggableOptions {
+  debounceMs?: number
+  boundary?: Boundary
+}
+
 export const useDraggable = (
   initialPosition: Position = { x: 0, y: 0 },
-  boundary?: Boundary
+  options?: UseDraggableOptions
 ) => {
+  const { debounceMs = 10, boundary } = options || {}
   const [position, setPosition] = useState<Position>(initialPosition)
   const [isDragging, setIsDragging] = useState(false)
   const dragRef = useRef<HTMLDivElement>(null)
   const initialPositionRef = useRef<Position>({ x: 0, y: 0 })
+  const lastUpdateTimeRef = useRef<number>(0)
+  const pendingPositionRef = useRef<Position | null>(null)
   
   const constrainPosition = (pos: Position): Position => {
     if (!boundary) return pos
@@ -36,6 +44,34 @@ export const useDraggable = (
       )
     }
   }
+  
+  // Debounced position update
+  const updatePositionWithDebounce = useCallback((newPosition: Position) => {
+    const now = Date.now()
+    const constrainedPosition = constrainPosition(newPosition)
+    
+    // Store the latest position
+    pendingPositionRef.current = constrainedPosition
+    
+    // If we recently updated, wait for the next frame
+    if (now - lastUpdateTimeRef.current < debounceMs) {
+      return
+    }
+    
+    // Update position and mark the time
+    setPosition(constrainedPosition)
+    lastUpdateTimeRef.current = now
+    pendingPositionRef.current = null
+    
+  }, [debounceMs])
+  
+  // Flush any pending position updates
+  const flushPendingUpdates = useCallback(() => {
+    if (pendingPositionRef.current) {
+      setPosition(pendingPositionRef.current)
+      pendingPositionRef.current = null
+    }
+  }, [])
   
   const handleMouseDown = (e: React.MouseEvent) => {
     if (dragRef.current && e.target === dragRef.current) {
@@ -66,7 +102,7 @@ export const useDraggable = (
         x: e.clientX - initialPositionRef.current.x,
         y: e.clientY - initialPositionRef.current.y
       }
-      setPosition(constrainPosition(newPosition))
+      updatePositionWithDebounce(newPosition)
     }
   }
   
@@ -77,16 +113,22 @@ export const useDraggable = (
         x: touch.clientX - initialPositionRef.current.x,
         y: touch.clientY - initialPositionRef.current.y
       }
-      setPosition(constrainPosition(newPosition))
+      updatePositionWithDebounce(newPosition)
     }
   }
   
   const handleMouseUp = () => {
-    setIsDragging(false)
+    if (isDragging) {
+      flushPendingUpdates()
+      setIsDragging(false)
+    }
   }
   
   const handleTouchEnd = () => {
-    setIsDragging(false)
+    if (isDragging) {
+      flushPendingUpdates()
+      setIsDragging(false)
+    }
   }
   
   useEffect(() => {
@@ -108,13 +150,15 @@ export const useDraggable = (
       window.removeEventListener('touchmove', handleTouchMove)
       window.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [isDragging])
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd])
   
   const resetPosition = () => {
+    pendingPositionRef.current = null
     setPosition(initialPosition)
   }
   
   const setNewPosition = (newPosition: Position) => {
+    pendingPositionRef.current = null
     setPosition(constrainPosition(newPosition))
   }
   

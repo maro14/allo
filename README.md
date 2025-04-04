@@ -1,6 +1,6 @@
 # Allo - Modern Kanban Board Application
 
-![Allo Screenshot](public/screenshot.png) *Add a screenshot here*
+![Allo Screenshot](public/screenshot.png)
 
 Allo is a feature-rich Kanban board application designed to streamline task management and boost team productivity. Built with modern web technologies, it offers a seamless drag-and-drop experience with real-time updates.
 
@@ -113,4 +113,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 - Inspired by Trello and Notion
 - Built with the amazing Next.js ecosystem
-```
