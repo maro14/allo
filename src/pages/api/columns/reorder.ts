@@ -5,6 +5,18 @@ import Board from '../../../models/Board'
 import dbConnect from '../../../lib/mongodb'
 import mongoose from 'mongoose'
 
+/**
+ * Column Reordering API Handler
+ * 
+ * Handles reordering of columns within a board:
+ * - PUT: Updates the position of multiple columns in a single operation
+ * 
+ * This endpoint is critical for the drag-and-drop functionality of the Kanban board.
+ * It ensures that column positions are updated atomically and consistently.
+ * 
+ * @param req - Next.js API request object
+ * @param res - Next.js API response object
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method !== 'PUT') {
@@ -15,25 +27,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { userId } = getAuth(req)
     const { boardId, columnIds } = req.body
 
+    // Authentication check
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' })
     }
 
+    // Validate board ID
     if (!boardId || !mongoose.Types.ObjectId.isValid(boardId)) {
       return res.status(400).json({ success: false, error: 'Invalid board ID' })
     }
 
+    // Validate column IDs array
     if (!Array.isArray(columnIds) || columnIds.some(id => !mongoose.Types.ObjectId.isValid(id))) {
       return res.status(400).json({ success: false, error: 'Invalid column IDs' })
     }
 
-    // Verify board ownership
+    // Verify board ownership - security check to prevent unauthorized access
     const board = await Board.findOne({ _id: boardId, userId })
     if (!board) {
       return res.status(403).json({ success: false, error: 'Access denied' })
     }
 
-    // Verify all columns belong to this board
+    // Verify all columns belong to this board - data integrity check
     const columns = await Column.find({ 
       _id: { $in: columnIds },
       boardId
@@ -47,7 +62,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Update columns one by one instead of using Promise.all
-    // This avoids potential transaction issues
+    // This avoids potential transaction issues with concurrent updates
+    // The position field is used for ordering columns in the UI
     for (let i = 0; i < columnIds.length; i++) {
       await Column.findByIdAndUpdate(
         columnIds[i],
@@ -58,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       )
     }
 
-    // Update board's updatedAt
+    // Update board's updatedAt timestamp to reflect the change
     await Board.findByIdAndUpdate(board._id, { 
       updatedAt: new Date() 
     })

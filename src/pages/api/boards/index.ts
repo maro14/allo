@@ -4,6 +4,16 @@ import Board from '../../../models/Board'
 import dbConnect from '../../../lib/mongodb'
 import serverCache from '../../../lib/serverCache'
 
+/**
+ * Boards API Handler
+ * 
+ * Handles CRUD operations for boards:
+ * - GET: Retrieves all boards for the authenticated user with caching
+ * - POST: Creates a new board with validation
+ * 
+ * @param req - Next.js API request object
+ * @param res - Next.js API response object
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await dbConnect();
@@ -14,6 +24,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'GET') {
+      // Cache implementation for better performance
+      // Uses a server-side cache with user-specific keys
       const cacheKey = `boards-${userId}`;
       const cachedData = serverCache.get(cacheKey);
       
@@ -25,6 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .sort({ updatedAt: -1 })
         .select('name createdAt updatedAt');
       
+      // Cache results for 30 seconds
       serverCache.set(cacheKey, boards, 30);
       
       return res.status(200).json({ success: true, data: boards });
@@ -33,10 +46,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'POST') {
       const { name } = req.body;
       
+      // Input validation
       if (!name || typeof name !== 'string' || name.trim() === '') {
         return res.status(400).json({ success: false, error: 'Board name is required' });
       }
       
+      // Check for duplicate board names to maintain data integrity
       const existingBoard = await Board.findOne({ userId, name: name.trim() });
       if (existingBoard) {
         return res.status(400).json({ success: false, error: 'A board with this name already exists' });
@@ -45,6 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const newBoard = new Board({ name: name.trim(), userId, columns: [] });
       await newBoard.save();
       
+      // Invalidate cache when data changes
       serverCache.remove(`boards-${userId}`);
       
       return res.status(201).json({ success: true, data: newBoard });

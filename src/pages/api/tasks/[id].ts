@@ -6,6 +6,25 @@ import Board from '../../../models/Board';
 import dbConnect from '../../../lib/mongodb';
 import mongoose from 'mongoose';
 
+/**
+ * Task Update API Handler
+ * 
+ * Handles updating and moving tasks:
+ * - PUT: Updates task properties or moves a task between columns
+ * 
+ * This endpoint handles two distinct operations:
+ * 1. Regular task updates (title, description, etc.)
+ * 2. Task movement between columns with position reordering
+ * 
+ * The task movement logic is complex as it needs to:
+ * - Update the task's column reference
+ * - Remove the task from the source column's tasks array
+ * - Add the task to the destination column's tasks array
+ * - Reorder tasks in both affected columns
+ * 
+ * @param req - Next.js API request object
+ * @param res - Next.js API response object
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'PUT') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -16,6 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { userId } = getAuth(req);
     const taskId = req.query.id as string;
 
+    // Authentication check
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
@@ -37,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ success: false, error: 'Column not found' });
     }
 
-    // Verify board ownership
+    // Verify board ownership - security check
     const board = await Board.findOne({
       _id: column.boardId,
       userId
@@ -68,89 +88,102 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ success: false, error: 'Column not found' });
       }
 
-      // Update task's column
+      // Update task's column reference
       task.columnId = destinationColumnId;
       await task.save();
 
-      // Handle moving to an empty column
+      // Special case: Moving to an empty column
       if (destColumn.tasks.length === 0 && destinationIndex === 0) {
         await Promise.all([
+          // Remove from source column
           Column.findByIdAndUpdate(sourceColumnId, {
             $pull: { tasks: taskId },
             updatedAt: new Date()
           }),
+          // Add to destination column
           Column.findByIdAndUpdate(destinationColumnId, {
             $set: { tasks: [taskId] },
             updatedAt: new Date()
           })
         ]);
       } else {
-        // Update source and destination columns (existing logic for non-empty columns)
-        await Promise.all([
-          Column.findByIdAndUpdate(sourceColumnId, {
-            $pull: { tasks: taskId },
+        // Handle moving between columns or within the same column
+        // This is more complex as we need to maintain the correct order
+        
+        // Get tasks from both columns
+        const sourceTasks = Array.from(sourceColumn.tasks).map(t => t.toString());
+        const destTasks = Array.from(destColumn.tasks).map(t => t.toString());
+        
+        // Remove task from source column's tasks array
+        const sourceIndex = sourceTasks.indexOf(taskId);
+        if (sourceIndex > -1) {
+          sourceTasks.splice(sourceIndex, 1);
+        }
+        
+        // Add task to destination column's tasks array at the specified index
+        if (sourceColumnId === destinationColumnId) {
+          // Same column, just reordering
+          sourceTasks.splice(destinationIndex, 0, taskId);
+          await Column.findByIdAndUpdate(sourceColumnId, {
+            $set: { tasks: sourceTasks },
             updatedAt: new Date()
-          }),
-          Column.findByIdAndUpdate(destinationColumnId, {
-            $push: {
-              tasks: {
-                $each: [taskId],
-                $position: destinationIndex
-              }
-            },
-            updatedAt: new Date()
-          })
-        ]);
+          });
+        } else {
+          // Different columns
+          destTasks.splice(destinationIndex, 0, taskId);
+          await Promise.all([
+            Column.findByIdAndUpdate(sourceColumnId, {
+              $set: { tasks: sourceTasks },
+              updatedAt: new Date()
+            }),
+            Column.findByIdAndUpdate(destinationColumnId, {
+              $set: { tasks: destTasks },
+              updatedAt: new Date()
+            })
+          ]);
+        }
       }
-    } 
-    // Handle regular task update
-    else if (Object.keys(updateData).length > 0) {
-      // Filter allowed fields to update
-      const allowedUpdates = [
-        'title', 
-        'description', 
-        'priority', 
-        'dueDate', 
-        'labels', 
-        'subtasks',
-        'completed'
-      ];
       
-      const filteredUpdates = Object.entries(updateData)
-        .filter(([key]) => allowedUpdates.includes(key))
-        .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+      // Update board's updatedAt timestamp
+      await Board.findByIdAndUpdate(board._id, { updatedAt: new Date() });
       
-      if (Object.keys(filteredUpdates).length === 0) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'No valid fields to update' 
-        });
+      return res.status(200).json({ success: true });
+    } else {
+      // Regular task update (not a move operation)
+      // Update allowed fields only
+      const allowedUpdates = ['title', 'description', 'priority', 'labels', 'dueDate'];
+      const updates: Record<string, any> = {};
+      
+      for (const field of allowedUpdates) {
+        if (field in updateData) {
+          updates[field] = updateData[field];
+        }
       }
+      
+      // Add updatedAt timestamp
+      updates.updatedAt = new Date();
       
       // Update the task
-      await Task.findByIdAndUpdate(taskId, {
-        ...filteredUpdates,
-        updatedAt: new Date()
-      });
-    } else {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'No update data provided' 
-      });
+      const updatedTask = await Task.findByIdAndUpdate(
+        taskId,
+        updates,
+        { new: true }
+      );
+      
+      // Update column and board timestamps
+      await Promise.all([
+        Column.findByIdAndUpdate(task.columnId, { updatedAt: new Date() }),
+        Board.findByIdAndUpdate(board._id, { updatedAt: new Date() })
+      ]);
+      
+      return res.status(200).json({ success: true, data: updatedTask });
     }
-
-    // Update board's timestamp
-    await Board.findByIdAndUpdate(board._id, {
-      updatedAt: new Date()
-    });
-
-    return res.status(200).json({ success: true });
   } catch (error) {
     console.error('Task update error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 }

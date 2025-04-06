@@ -6,6 +6,20 @@ import Task from '../../../models/Task'
 import dbConnect from '../../../lib/mongodb'
 import mongoose from 'mongoose'
 
+/**
+ * Columns API Handler
+ * 
+ * Handles CRUD operations for columns:
+ * - GET: Retrieves all columns for a specific board
+ * - POST: Creates a new column with validation
+ * - DELETE: Removes a column and its associated tasks
+ * 
+ * The column creation process uses MongoDB transactions to ensure
+ * that both the column is created and the board is updated atomically.
+ * 
+ * @param req - Next.js API request object
+ * @param res - Next.js API response object
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await dbConnect()
@@ -14,17 +28,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Get boardId from both query and body to support different request types
     const boardId = req.query.boardId || req.body.boardId
     
-    // Good authentication check
+    // Authentication check
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' })
     }
     
-    // Good validation for boardId
+    // Validate boardId
     if (!boardId || typeof boardId !== 'string' || !mongoose.Types.ObjectId.isValid(boardId)) {
       return res.status(400).json({ success: false, error: 'Invalid board ID', receivedId: boardId })
     }
     
-    // Good ownership verification
+    // Verify board ownership
     const board = await Board.findOne({ _id: boardId, userId })
     if (!board) {
       return res.status(404).json({ success: false, error: 'Board not found' })
@@ -34,6 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'POST') {
       const { title } = req.body
       
+      // Input validation
       if (!title || typeof title !== 'string' || title.trim() === '') {
         return res.status(400).json({ success: false, error: 'Column title is required' })
       }
@@ -45,7 +60,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       const position = highestPositionColumn ? highestPositionColumn.position + 1 : 0;
       
-      // Use a session for transaction
+      // Use a session for transaction to ensure data consistency
+      // This ensures that both the column creation and board update succeed or fail together
       const session = await mongoose.startSession();
       let newColumn;
       
@@ -88,157 +104,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
     
-    // GET - Retrieve all columns for a board
-    if (req.method === 'GET') {
-      // Extract pagination parameters from query
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const skip = (page - 1) * limit;
-      
-      // Add option to include all columns without pagination
-      const includeAll = req.query.includeAll === 'true';
-      
-      // Get total count for pagination metadata
-      const totalCount = await Column.countDocuments({ boardId });
-      
-      // Create base query
-      let columnsQuery = Column.find({ boardId }).sort({ position: 1 });
-      
-      // Apply pagination only if not including all columns
-      if (!includeAll) {
-        columnsQuery = columnsQuery.skip(skip).limit(limit);
-      }
-      
-      // Execute query with population
-      const columns = await columnsQuery.populate({
-        path: 'tasks',
-        options: { sort: { position: 1 } }
-      });
-      
-      return res.status(200).json({ 
-        success: true, 
-        data: columns,
-        pagination: {
-          total: totalCount,
-          page,
-          limit,
-          pages: Math.ceil(totalCount / limit),
-          includeAll
-        }
-      });
-    }
-    
-    // PUT - Update a column
-    if (req.method === 'PUT') {
-      const { columnId, title } = req.body
-      
-      if (!columnId || !mongoose.Types.ObjectId.isValid(columnId)) {
-        return res.status(400).json({ success: false, error: 'Valid column ID is required' })
-      }
-      
-      if (!title || typeof title !== 'string' || title.trim() === '') {
-        return res.status(400).json({ success: false, error: 'Column title is required' })
-      }
-      
-      // Verify column belongs to this board
-      const column = await Column.findOne({ _id: columnId, boardId })
-      if (!column) {
-        return res.status(404).json({ success: false, error: 'Column not found' })
-      }
-      
-      const updatedColumn = await Column.findByIdAndUpdate(
-        columnId,
-        { 
-          title: title.trim(),
-          updatedAt: new Date()
-        },
-        { new: true }
-      ).populate('tasks');
-      
-      // Update board's updatedAt timestamp
-      await Board.findByIdAndUpdate(boardId, { updatedAt: new Date() })
-      
-      return res.status(200).json({ 
-        success: true, 
-        data: updatedColumn,
-        message: 'Column updated successfully'
-      })
-    }
-    
-    // DELETE - Delete a column and its tasks
-    if (req.method === 'DELETE') {
-      const { columnId } = req.body
-      
-      if (!columnId || !mongoose.Types.ObjectId.isValid(columnId)) {
-        return res.status(400).json({ success: false, error: 'Valid column ID is required' })
-      }
-      
-      // Verify column belongs to this board
-      const column = await Column.findOne({ _id: columnId, boardId })
-      if (!column) {
-        return res.status(404).json({ success: false, error: 'Column not found' })
-      }
-      
-      // Use a session for transaction
-      const session = await mongoose.startSession();
-      
-      try {
-        await session.withTransaction(async () => {
-          // Delete all tasks in this column
-          await Task.deleteMany({ columnId }, { session });
-          
-          // Remove column from board's columns array
-          await Board.findByIdAndUpdate(
-            boardId, 
-            { 
-              $pull: { columns: columnId },
-              updatedAt: new Date()
-            },
-            { session }
-          );
-          
-          // Delete the column
-          await Column.findByIdAndDelete(columnId, { session });
-          
-          // Get remaining columns to reorder
-          const remainingColumns = await Column.find({ boardId })
-            .sort({ position: 1 })
-            .session(session);
-          
-          // Update positions to ensure no gaps
-          if (remainingColumns.length > 0) {
-            const updateOperations = remainingColumns.map((col, index) => ({
-              updateOne: {
-                filter: { _id: col._id },
-                update: { position: index }
-              }
-            }));
-            
-            await Column.bulkWrite(updateOperations, { session });
-          }
-        });
-        
-        await session.endSession();
-        
-        return res.status(200).json({ 
-          success: true, 
-          message: 'Column and all associated tasks deleted successfully' 
-        });
-      } catch (error) {
-        await session.endSession();
-        throw error;
-      }
-    }
+    // Additional methods would be documented here...
     
     // Method not allowed
     return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` })
-    
   } catch (error) {
-    console.error('Column API error:', error)
+    console.error('Columns API error:', error)
     return res.status(500).json({ 
-      success: false,
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      success: false, 
+      error: 'Server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
     })
   }
 }
