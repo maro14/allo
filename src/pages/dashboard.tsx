@@ -150,6 +150,17 @@ const Dashboard = () => {
         ))
         setEditingBoard(null)
         setEditName('')
+        // Near the top of your file, add:
+        const toastStyle = {
+          duration: 3000,
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+        }
+        
+        // Then in your code, replace instances like:
         toast.success('Board updated successfully!', {
           duration: 3000,
           icon: '✅',
@@ -158,6 +169,12 @@ const Dashboard = () => {
             background: '#333',
             color: '#fff',
           },
+        })
+        
+        // With:
+        toast.success('Board updated successfully!', {
+          ...toastStyle,
+          icon: '✅',
         })
       } else {
         console.error('Failed to update board:', result.error)
