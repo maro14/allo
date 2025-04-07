@@ -6,12 +6,28 @@ import mongoose from 'mongoose'
 import Column from '../../models/Column'
 import Task from '../../models/Task'
 
+/**
+ * Legacy Board API Handler
+ * 
+ * Handles CRUD operations for boards:
+ * - GET: Retrieves all boards for the authenticated user
+ * - POST: Creates a new board with validation
+ * - PUT: Updates an existing board
+ * - DELETE: Removes a board and all its associated columns and tasks
+ * 
+ * Note: This is a legacy endpoint. New code should use the /api/boards endpoints
+ * which provide better caching and more consistent naming.
+ * 
+ * @param req - Next.js API request object
+ * @param res - Next.js API response object
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await dbConnect()
     
     const { userId } = getAuth(req)
     
+    // Authentication check
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' })
     }
@@ -33,6 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'POST') {
       const { name } = req.body
       
+      // Input validation
       if (!name || typeof name !== 'string' || name.trim() === '') {
         return res.status(400).json({ success: false, error: 'Board name is required' })
       }
@@ -60,10 +77,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'PUT') {
       const { id, name } = req.body
       
+      // Validate board ID
       if (!id || !mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ success: false, error: 'Valid board ID is required' })
       }
       
+      // Input validation
       if (!name || typeof name !== 'string' || name.trim() === '') {
         return res.status(400).json({ success: false, error: 'Board name is required' })
       }
@@ -82,9 +101,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
       }
       
+      // Update the board
       const updatedBoard = await Board.findOneAndUpdate(
-        { _id: id, userId },
-        { name: name.trim(), updatedAt: new Date() },
+        { _id: id, userId }, // Ensure user owns the board
+        { 
+          name: name.trim(),
+          updatedAt: new Date()
+        },
         { new: true }
       )
       
@@ -95,43 +118,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ success: true, data: updatedBoard })
     }
     
-    // DELETE - Delete a board and all its columns and tasks
+    // DELETE - Remove a board
     if (req.method === 'DELETE') {
       const { id } = req.body
       
+      // Validate board ID
       if (!id || !mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ success: false, error: 'Valid board ID is required' })
       }
       
-      // Find the board to verify ownership
+      // Find the board to ensure it exists and belongs to the user
       const board = await Board.findOne({ _id: id, userId })
-      
       if (!board) {
         return res.status(404).json({ success: false, error: 'Board not found' })
       }
       
-      // Find all columns associated with this board
-      const columns = await Column.find({ boardId: id })
-      const columnIds = columns.map(col => col._id)
+      // Use a session for transaction to ensure data consistency
+      const session = await mongoose.startSession()
+      session.startTransaction()
       
-      // Delete all tasks in those columns
-      await Task.deleteMany({ columnId: { $in: columnIds } })
+      try {
+        // Get all columns for this board
+        const columns = await Column.find({ boardId: id })
+        
+        // Get all task IDs from these columns
+        const taskIds = columns.flatMap(column => column.tasks)
+        
+        // Delete all tasks, columns, and the board in order
+        await Task.deleteMany({ _id: { $in: taskIds } }, { session })
+        await Column.deleteMany({ boardId: id }, { session })
+        await Board.findByIdAndDelete(id, { session })
+        
+        await session.commitTransaction()
+      } catch (error) {
+        await session.abortTransaction()
+        throw error
+      } finally {
+        session.endSession()
+      }
       
-      // Delete all columns
-      await Column.deleteMany({ boardId: id })
-      
-      // Delete the board
-      await Board.deleteOne({ _id: id })
-      
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Board and all associated data deleted' 
-      })
+      return res.status(200).json({ success: true })
     }
     
-    // Method not allowed
     return res.status(405).json({ success: false, error: `Method ${req.method} not allowed` })
-    
   } catch (error) {
     console.error('Board API error:', error)
     return res.status(500).json({ 

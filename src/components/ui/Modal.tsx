@@ -2,16 +2,43 @@
 import { ReactNode, useEffect, RefObject, useRef, useState } from 'react'
 import ReactDOM from 'react-dom'
 
+/**
+ * Modal Component
+ * 
+ * A flexible modal dialog component that supports positioning, dragging,
+ * and customizable appearance.
+ * 
+ * @example
+ * ```tsx
+ * <Modal 
+ *   isOpen={showModal} 
+ *   onClose={() => setShowModal(false)}
+ *   maxWidth="md"
+ * >
+ *   <h2>Modal Content</h2>
+ *   <p>This is a modal dialog</p>
+ * </Modal>
+ * ```
+ */
 interface ModalProps {
+  /** Controls modal visibility */
   isOpen: boolean
+  /** Function called when modal is closed */
   onClose: () => void
+  /** Modal content */
   children: ReactNode
+  /** Maximum width of modal (sm, md, lg, xl, or custom value) */
   maxWidth?: string
+  /** Custom position coordinates */
   position?: { x: number, y: number }
+  /** Reference to element that can be used as drag handle */
   dragHandleRef?: RefObject<HTMLDivElement | null>
+  /** Whether clicking the backdrop should close the modal */
   closeOnBackdropClick?: boolean
+  /** Additional CSS classes */
   className?: string
-  hideCloseButton?: boolean  // Add this prop to control X button visibility
+  /** Whether to hide the close button */
+  hideCloseButton?: boolean
 }
 
 export const Modal = ({
