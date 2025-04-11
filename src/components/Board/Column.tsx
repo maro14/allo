@@ -1,5 +1,5 @@
 //src/components/Board/Column.tsx
-import { useState, useRef, memo } from 'react';
+import { useState, useRef, useEffect ,memo } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import { Task } from './Task';
 import { TaskFormModal } from './TaskFormModal';
@@ -19,7 +19,7 @@ export interface TaskType {
   _id: string;
   title: string;
   description?: string;
-  priority?: string;
+  priority?: "urgent" | "high" | "medium" | "low"; // Updated to use specific string literals
   labels?: string[];
   subtasks?: Subtask[];
 }
@@ -74,6 +74,7 @@ export const Column = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const taskListRef = useRef<HTMLDivElement>(null); // Add a separate ref for the task list
 
   if (!column || !column._id) {
     console.error('Invalid column data:', column);
@@ -178,7 +179,20 @@ export const Column = ({
 
   // Connect the drag and drop refs
   drag(drop(ref));
-  taskListDrop(ref);
+  
+  // Use useEffect to apply the drop ref to the taskListRef
+  useEffect(() => {
+    if (taskListRef.current) {
+      dropTask(taskListRef.current);
+    }
+  }, [dropTask]);
+
+  // Also apply taskListDrop to the column ref
+  useEffect(() => {
+    if (ref.current) {
+      taskListDrop(ref.current);
+    }
+  }, [taskListDrop]);
 
   const handleTaskCreated = (newTask: TaskType) => {
     console.log('New task created:', newTask);
@@ -213,10 +227,7 @@ export const Column = ({
 
   return (
     <div
-      ref={(node) => {
-        ref.current = node;
-        drag(drop(node));
-      }}
+      ref={ref}
       className={`flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg shadow-sm 
         min-w-[280px] max-w-[280px] h-full
         ${isDragging ? 'opacity-50' : ''}`}
@@ -279,7 +290,7 @@ export const Column = ({
 
       {/* Tasks List */}
       <div
-        ref={dropTask}
+        ref={taskListRef} // Use the separate ref here instead of directly using dropTask
         className="flex-1 overflow-y-auto p-2 space-y-2"
         aria-label={`Tasks in ${column.title}`}
         role="list"
