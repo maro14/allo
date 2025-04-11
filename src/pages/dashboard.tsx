@@ -24,6 +24,19 @@ interface Board {
   updatedAt: string;
 }
 
+/**
+ * Dashboard Component
+ * 
+ * This component displays a user's kanban boards and provides functionality to:
+ * - View all existing boards
+ * - Create new boards
+ * - Edit board names
+ * - Delete boards
+ * - Sort boards by different criteria
+ * 
+ * The component uses React hooks for state management and Clerk for authentication.
+ * Toast notifications provide feedback for user actions.
+ */
 const Dashboard = () => {
   const { userId } = useAuth()
   const { user } = useUser()
@@ -54,6 +67,10 @@ const Dashboard = () => {
       })
   }, [userId])
 
+  /**
+   * Creates a new board with the provided name
+   * @param e - Form submission event
+   */
   const createBoard = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -108,6 +125,11 @@ const Dashboard = () => {
   }
 
   // Add a sort function
+  /**
+   * Sorts boards based on the current sort order
+   * @param boards - Array of board objects to sort
+   * @returns Sorted array of boards
+   */
   const sortBoards = (boards: Board[]) => {
     if (sortOrder === 'newest') {
       return [...boards].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -118,16 +140,27 @@ const Dashboard = () => {
     }
   }
 
+  /**
+   * Prepares a board for editing by setting state
+   * @param board - The board to edit
+   */
   const startEditing = (board: Board) => {
     setEditingBoard(board)
     setEditName(board.name)
   }
 
+  /**
+   * Cancels the current board editing operation
+   */
   const cancelEditing = () => {
     setEditingBoard(null)
     setEditName('')
   }
 
+  /**
+   * Updates a board's name in the database
+   * @param e - Form submission event
+   */
   const updateBoard = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -162,17 +195,6 @@ const Dashboard = () => {
         
         // Then in your code, replace instances like:
         toast.success('Board updated successfully!', {
-          duration: 3000,
-          icon: '✅',
-          style: {
-            borderRadius: '10px',
-            background: '#333',
-            color: '#fff',
-          },
-        })
-        
-        // With:
-        toast.success('Board updated successfully!', {
           ...toastStyle,
           icon: '✅',
         })
@@ -202,6 +224,10 @@ const Dashboard = () => {
     }
   }
 
+  /**
+   * Deletes a board after confirmation
+   * @param boardId - ID of the board to delete
+   */
   const deleteBoard = async (boardId: string) => {
     if (!confirm('Are you sure you want to delete this board? This action cannot be undone.')) {
       return

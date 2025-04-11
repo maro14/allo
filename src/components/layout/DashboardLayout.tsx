@@ -4,6 +4,20 @@ import { Button } from '../ui/Button'
 import Head from 'next/head'
 import { PlusIcon, UserIcon, HomeIcon } from '@heroicons/react/24/outline'
 
+/**
+ * Interface for DashboardLayout component props
+ * @interface DashboardLayoutProps
+ * @property {ReactNode} children - Content to be rendered inside the layout
+ * @property {string} title - Page title to be displayed in browser tab and optionally in the header
+ * @property {string} [username] - Optional username to display in the welcome message
+ * @property {string} [description] - Optional description text to display below the title
+ * @property {() => void} [onCreate] - Optional callback function for the create button
+ * @property {string} [createButtonText] - Text to display on the create button (defaults to "Create New")
+ * @property {boolean} [isCreating] - Flag to show loading state on the create button
+ * @property {string} [className] - Additional CSS classes to apply to the main container
+ * @property {boolean} [gridLayout] - Whether to use grid layout for children (defaults to true)
+ * @property {Object} [gridCols] - Configuration for responsive grid columns
+ */
 interface DashboardLayoutProps {
   children: ReactNode
   title: string
@@ -22,6 +36,19 @@ interface DashboardLayoutProps {
   }
 }
 
+/**
+ * DashboardLayout Component
+ * 
+ * A reusable layout component for dashboard pages that provides:
+ * - Consistent page structure with customizable header
+ * - Page title and meta description
+ * - Optional welcome message with username
+ * - Optional create button with loading state
+ * - Flexible grid layout system for content
+ * 
+ * @param {DashboardLayoutProps} props - Component props
+ * @returns {JSX.Element} The rendered dashboard layout
+ */
 export const DashboardLayout = ({
   children,
   title,
@@ -75,7 +102,7 @@ export const DashboardLayout = ({
           )}
         </div>
 
-        {/* Rest of the component remains unchanged */}
+        {/* Content area with optional grid layout */}
         {gridLayout ? (
           <div className={`grid grid-cols-1 ${
             gridCols.md ? `md:grid-cols-${gridCols.md}` : 'md:grid-cols-2'
