@@ -71,6 +71,23 @@ CLERK_SECRET_KEY=your_clerk_secret
 NEXTAUTH_SECRET=your_nextauth_secret
 ```
 
+## 🛤️ Roadmap
+
+- **Q4 2023**
+  - Implement real-time updates for boards and tasks
+  - Add comments and activity logs for enhanced collaboration
+  - Introduce board sharing with customizable permissions
+
+- **Q1 2024**
+  - Integrate with third-party services (e.g., Slack, Google Calendar)
+  - Enhance mobile responsiveness and offline capabilities
+  - Improve accessibility features
+
+- **Q2 2024**
+  - Launch a public API for third-party integrations
+  - Add advanced analytics and reporting tools
+  - Implement AI-driven task suggestions and prioritization
+
 ### Running the App
 ```bash
 # Development server
