@@ -1,49 +1,13 @@
-//src/components/board.index.tsx
+// src/components/board.index.tsx
 import { useState, useEffect, useCallback } from 'react';
 import Column from './Column';
 import { Button } from '../ui/Button';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { LoadingSpinnerBoard } from './LoadingSpinnerBoard';
 import { DragDropProvider } from '../../lib/dnd-provider';
+import { Task, Column, Board, BoardProps, DropResult } from '../../types/boardTypes';
 
-// Define DropResult interface if not imported
-interface DropResult {
-  destination: {
-    droppableId: string;
-    index: number;
-  } | null;
-  source: {
-    droppableId: string;
-    index: number;
-  };
-  draggableId: string;
-  type: string;
-}
 
-// Define your interfaces
-interface Task {
-  _id: string;
-  title: string;
-  description?: string;
-  priority?: string;
-  labels?: string[];
-}
-
-interface Column {
-  _id: string;
-  title: string;
-  tasks: Task[];
-}
-
-interface Board {
-  _id: string;
-  name: string;
-  columns: Column[];
-}
-
-interface BoardProps {
-  boardId: string;
-}
 
 const Board = ({ boardId }: BoardProps) => {
   const [board, setBoard] = useState<Board | null>(null);
@@ -81,29 +45,61 @@ const Board = ({ boardId }: BoardProps) => {
     fetchBoard();
   }, [boardId]);
 
-  // Move these functions inside the component
+  // Helper function to update column order
+  const updateColumnsOrder = (columns: Column[], dragIndex: number, hoverIndex: number) => {
+    const newColumns = [...columns];
+    const [movedColumn] = newColumns.splice(dragIndex, 1);
+    newColumns.splice(hoverIndex, 0, movedColumn);
+    return newColumns;
+  };
+
+  // Helper function to update task position
+  const updateTaskPosition = (
+    columns: Column[],
+    sourceColumnId: string,
+    destColumnId: string,
+    sourceIndex: number,
+    destinationIndex: number,
+    taskId: string
+  ) => {
+    const sourceColumn = columns.find(col => col._id === sourceColumnId);
+    const destColumn = columns.find(col => col._id === destColumnId);
+    
+    if (!sourceColumn || !destColumn) return columns;
+
+    const sourceTasks = [...sourceColumn.tasks];
+    const destTasks = sourceColumnId === destColumnId ? sourceTasks : [...destColumn.tasks];
+    
+    const [movedTask] = sourceTasks.splice(sourceIndex, 1);
+    if (sourceColumnId === destColumnId) {
+      sourceTasks.splice(destinationIndex, 0, movedTask);
+    } else {
+      destTasks.splice(destinationIndex, 0, movedTask);
+    }
+
+    return columns.map(col => {
+      if (col._id === sourceColumnId) return { ...col, tasks: sourceTasks };
+      if (col._id === destColumnId) return { ...col, tasks: destTasks };
+      return col;
+    });
+  };
+
+  // Refactored moveColumn function
   const moveColumn = useCallback(
     async (dragIndex: number, hoverIndex: number) => {
       if (!board) return;
       
-      const newColumns = [...board.columns];
-      const draggedColumn = newColumns[dragIndex];
-      
-      // Remove the dragged column
-      newColumns.splice(dragIndex, 1);
-      // Insert it at the new position
-      newColumns.splice(hoverIndex, 0, draggedColumn);
-      
-      // Update local state immediately for responsive UI
+      const newColumns = updateColumnsOrder(board.columns, dragIndex, hoverIndex);
       setBoard({ ...board, columns: newColumns });
       
-      // Send update to server
-      const columnIds = newColumns.map(col => col._id);
       try {
         await fetch(`/api/columns/reorder`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ boardId, columnIds }),
+          body: JSON.stringify({ 
+            boardId, 
+            columnIds: newColumns.map(col => col._id) 
+          }),
         });
       } catch (error) {
         console.error('Error reordering columns:', error);
@@ -112,6 +108,7 @@ const Board = ({ boardId }: BoardProps) => {
     [board, boardId]
   );
 
+  // Refactored moveTask function
   const moveTask = useCallback(
     async (
       taskId: string,
@@ -122,42 +119,17 @@ const Board = ({ boardId }: BoardProps) => {
     ) => {
       if (!board) return;
       
-      const sourceColumn = board.columns.find(col => col._id === sourceColumnId);
-      const destColumn = board.columns.find(col => col._id === destinationColumnId);
+      const updatedColumns = updateTaskPosition(
+        board.columns,
+        sourceColumnId,
+        destinationColumnId,
+        sourceIndex,
+        destinationIndex,
+        taskId
+      );
       
-      if (!sourceColumn || !destColumn) return;
-      
-      // Create new arrays for the tasks
-      const sourceTasks = Array.from(sourceColumn.tasks);
-      const destTasks = sourceColumnId === destinationColumnId 
-        ? sourceTasks 
-        : Array.from(destColumn.tasks);
-      
-      // Remove from source
-      const [movedTask] = sourceTasks.splice(sourceIndex, 1);
-      
-      // Add to destination
-      if (sourceColumnId === destinationColumnId) {
-        sourceTasks.splice(destinationIndex, 0, movedTask);
-      } else {
-        destTasks.splice(destinationIndex, 0, movedTask);
-      }
-      
-      // Create updated columns
-      const updatedColumns = board.columns.map(col => {
-        if (col._id === sourceColumnId) {
-          return { ...col, tasks: sourceTasks };
-        }
-        if (col._id === destinationColumnId && sourceColumnId !== destinationColumnId) {
-          return { ...col, tasks: destTasks };
-        }
-        return col;
-      });
-      
-      // Update local state
       setBoard({ ...board, columns: updatedColumns });
       
-      // Send update to server - using the main task update endpoint instead of a dedicated move endpoint
       try {
         await fetch(`/api/tasks/${taskId}`, {
           method: 'PUT',
@@ -175,81 +147,49 @@ const Board = ({ boardId }: BoardProps) => {
     [board]
   );
 
+  // Refactored handleDragEnd function
   const handleDragEnd = async (result: DropResult) => {
     setIsReordering(true);
     try {
       const { destination, source, type, draggableId } = result;
   
-      // If no destination or dropped in same position, do nothing
-      if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
+      if (!destination || (destination.droppableId === source.droppableId && 
+                          destination.index === source.index)) {
         setIsReordering(false);
         return;
       }
   
-      // Handle column reordering
       if (type === 'column') {
-        const newColumns = Array.from(board!.columns);
-        const [movedColumn] = newColumns.splice(source.index, 1);
-        newColumns.splice(destination.index, 0, movedColumn);
-        
-        // Update local state immediately for responsive UI
+        const newColumns = updateColumnsOrder(board!.columns, source.index, destination.index);
         setBoard({ ...board!, columns: newColumns });
         
-        // Send update to server
-        const columnIds = newColumns.map(col => col._id);
         await fetch(`/api/columns/reorder`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ boardId, columnIds }),
+          body: JSON.stringify({ 
+            boardId, 
+            columnIds: newColumns.map(col => col._id) 
+          }),
         });
       } 
-      // Handle task reordering
       else if (type === 'task') {
-        const sourceColumn = board!.columns.find(col => col._id === source.droppableId);
-        const destColumn = board!.columns.find(col => col._id === destination.droppableId);
+        const updatedColumns = updateTaskPosition(
+          board!.columns,
+          source.droppableId,
+          destination.droppableId,
+          source.index,
+          destination.index,
+          draggableId
+        );
         
-        if (!sourceColumn || !destColumn) return;
-        
-        // Get the task that was moved
-        const taskId = draggableId;
-        
-        // Create new arrays for the tasks
-        const sourceTasks = Array.from(sourceColumn.tasks);
-        const destTasks = sourceColumn._id === destColumn._id 
-          ? sourceTasks 
-          : Array.from(destColumn.tasks);
-        
-        // Remove from source
-        const [movedTask] = sourceTasks.splice(source.index, 1);
-        
-        // Add to destination
-        if (sourceColumn._id === destColumn._id) {
-          sourceTasks.splice(destination.index, 0, movedTask);
-        } else {
-          destTasks.splice(destination.index, 0, movedTask);
-        }
-        
-        // Create updated columns
-        const updatedColumns = board!.columns.map(col => {
-          if (col._id === sourceColumn._id) {
-            return { ...col, tasks: sourceTasks };
-          }
-          if (col._id === destColumn._id && sourceColumn._id !== destColumn._id) {
-            return { ...col, tasks: destTasks };
-          }
-          return col;
-        });
-        
-        // Update local state
         setBoard({ ...board!, columns: updatedColumns });
         
-        // Send update to server - using the main task update endpoint
-        await fetch(`/api/tasks/${taskId}`, {
+        await fetch(`/api/tasks/${draggableId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            sourceColumnId: sourceColumn._id,
-            destinationColumnId: destColumn._id,
+            sourceColumnId: source.droppableId,
+            destinationColumnId: destination.droppableId,
             destinationIndex: destination.index,
           }),
         });
