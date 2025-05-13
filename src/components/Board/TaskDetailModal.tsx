@@ -79,16 +79,17 @@ export const TaskDetailModal = ({
       priority: editedPriority
     }
     
-    console.log('Current description:', task.description)
-    console.log('Edited description:', editedDescription)
-    console.log('Sending update with data:', {
-      taskId: task._id,
-      updates: {
-        title: editedTitle,
-        description: editedDescription,
-        priority: editedPriority
-      }
-    })
+    // Remove these console.log statements
+    // console.log('Current description:', task.description)
+    // console.log('Edited description:', editedDescription)
+    // console.log('Sending update with data:', {
+    //   taskId: task._id,
+    //   updates: {
+    //     title: editedTitle,
+    //     description: editedDescription,
+    //     priority: editedPriority
+    //   }
+    // })
     
     setLocalTask(updatedTask)
     setIsEditing(false)
@@ -102,9 +103,9 @@ export const TaskDetailModal = ({
         description: editedDescription,
         priority: editedPriority
       })
-      console.log('Task update API call completed')
+      // Remove console.log statement
     } catch (err) {
-      console.error('Failed to update task:', err)
+      // Remove console.error statement
       setError('Failed to update task. Please try again.')
       // Revert to previous state on error
       setLocalTask(previousTask)
@@ -135,7 +136,7 @@ export const TaskDetailModal = ({
     try {
       await onDelete(task._id)
     } catch (err) {
-      console.error('Failed to delete task:', err)
+      // Remove console.error statement
       // Could show a toast notification here
     } finally {
       setIsDeleting(false)
@@ -169,7 +170,7 @@ export const TaskDetailModal = ({
     try {
       await onUpdate(task._id, { subtasks: updatedSubtasks })
     } catch (err) {
-      console.error('Failed to update subtask status:', err)
+      // Remove console.error statement
       // Revert to previous state on error
       setCompletedSubtasks(previousSubtasks?.filter(s => s.completed).map(s => s._id) || [])
     }

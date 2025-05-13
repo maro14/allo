@@ -19,9 +19,9 @@ export interface TaskType {
   _id: string;
   title: string;
   description?: string;
-  priority?: "urgent" | "high" | "medium" | "low"; // Updated to use specific string literals
-  labels?: string[];
-  subtasks?: Subtask[];
+  priority: "urgent" | "high" | "medium" | "low"; // Make this required with specific values
+  labels: string[]; // Make this required with empty array default
+  subtasks: Subtask[]; // Make this required with empty array default
 }
 
 interface ColumnType {
@@ -195,7 +195,7 @@ export const Column = ({
   }, [taskListDrop]);
 
   const handleTaskCreated = (newTask: TaskType) => {
-    console.log('New task created:', newTask);
+    // Remove console.log statement
     
     // Propagate the new task to the parent (Board) if a callback is provided.
     if (onTaskCreated) {

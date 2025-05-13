@@ -102,7 +102,7 @@ const Board = ({ boardId }: BoardProps) => {
           }),
         });
       } catch (error) {
-        console.error('Error reordering columns:', error);
+        // Remove console.error statement
       }
     },
     [board, boardId]
@@ -141,7 +141,7 @@ const Board = ({ boardId }: BoardProps) => {
           }),
         });
       } catch (error) {
-        console.error('Error moving task:', error);
+        // Remove console.error statement
       }
     },
     [board]
@@ -262,7 +262,7 @@ const Board = ({ boardId }: BoardProps) => {
       setNewColumnTitle('');
       setIsAddingColumn(false);
     } catch (err) {
-      console.error('Error adding column:', err);
+      // Remove console.error statement
       alert(err instanceof Error ? err.message : 'Failed to create column');
     }
   };
