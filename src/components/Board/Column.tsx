@@ -145,30 +145,43 @@ export const Column = ({
   });
 
   // Drop functionality for tasks
+  /**
+   * Drop handler for tasks being moved between columns
+   * This handles the special case of dropping a task into an empty column
+   */
   const [, dropTask] = useDrop({
     accept: TASK_TYPE,
     hover(item: { id: string; index: number; columnId: string; type: string }, monitor) {
-      // Only handle if it's coming from another column
+      // Only process if the task is coming from a different column
       if (item.columnId === column._id) return;
       
-      // If the column is empty, we'll move the task to index 0
+      // Special case: If the column is empty, move the task to index 0
+      // This is necessary because empty columns don't have droppable task slots
       if (column.tasks.length === 0) {
+        // Move the task to this column at index 0
         moveTask(item.id, item.columnId, column._id, item.index, 0);
+        
+        // Update the item's metadata to reflect its new position
+        // This prevents multiple moves if the hover event fires repeatedly
         item.index = 0;
         item.columnId = column._id;
       }
     },
+    // Return the column ID to identify this drop target
     drop: () => ({ columnId: column._id }),
   });
 
-  // Add a drop target for the task list area
+  /**
+   * Additional drop target for the task list area
+   * This ensures the entire column body can receive task drops
+   */
   const [, taskListDrop] = useDrop({
     accept: TASK_TYPE,
     hover(item: { id: string; index: number; columnId: string; type: string }, monitor) {
-      // Only handle if it's coming from another column
+      // Only process if the task is coming from a different column
       if (item.columnId === column._id) return;
       
-      // If the column is empty, we'll move the task to index 0
+      // Handle empty column case
       if (column.tasks.length === 0) {
         moveTask(item.id, item.columnId, column._id, item.index, 0);
         item.index = 0;
@@ -177,17 +190,23 @@ export const Column = ({
     }
   });
 
-  // Connect the drag and drop refs
+  // Connect the drag and drop refs to the column element
   drag(drop(ref));
   
-  // Use useEffect to apply the drop ref to the taskListRef
+  /**
+   * Apply the drop task handler to the task list area
+   * This ensures tasks can be dropped anywhere in the column
+   */
   useEffect(() => {
     if (taskListRef.current) {
       dropTask(taskListRef.current);
     }
   }, [dropTask]);
 
-  // Also apply taskListDrop to the column ref
+  /**
+   * Apply the task list drop handler to the column element
+   * This provides redundancy to ensure drops are captured
+   */
   useEffect(() => {
     if (ref.current) {
       taskListDrop(ref.current);

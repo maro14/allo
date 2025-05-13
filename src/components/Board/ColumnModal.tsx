@@ -39,29 +39,40 @@ export const ColumnModal = ({
     setError(null);
   }, [column, isOpen]);
 
+  /**
+   * Handles form submission for creating or updating a column
+   * Performs validation and error handling
+   * 
+   * @param e - The form submission event
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate that the title is not empty
     if (!title.trim()) {
       setError('Column title is required');
       return;
     }
     
+    // Set loading state and clear any previous errors
     setIsSubmitting(true);
     setError(null);
     
     try {
       if (column && onUpdate) {
-        // Update existing column
+        // Update existing column with the new title
         await onUpdate(column._id, title.trim());
       } else if (onAdd) {
-        // Add new column
+        // Create a new column with the provided title
         await onAdd(title.trim());
       }
+      // Close the modal on success
       onClose();
     } catch (err) {
+      // Display error message if the operation fails
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
+      // Reset loading state regardless of outcome
       setIsSubmitting(false);
     }
   };

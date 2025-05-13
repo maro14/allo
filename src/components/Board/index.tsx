@@ -54,6 +54,17 @@ const Board = ({ boardId }: BoardProps) => {
   };
 
   // Helper function to update task position
+  /**
+   * Updates the position of tasks within or between columns
+   * 
+   * @param columns - The current columns array from the board state
+   * @param sourceColumnId - ID of the column where the task originated
+   * @param destColumnId - ID of the column where the task is being moved to
+   * @param sourceIndex - Original position index of the task in the source column
+   * @param destinationIndex - Target position index for the task in the destination column
+   * @param taskId - ID of the task being moved
+   * @returns Updated columns array with the task in its new position
+   */
   const updateTaskPosition = (
     columns: Column[],
     sourceColumnId: string,
@@ -62,21 +73,28 @@ const Board = ({ boardId }: BoardProps) => {
     destinationIndex: number,
     taskId: string
   ) => {
+    // Find the source and destination columns
     const sourceColumn = columns.find(col => col._id === sourceColumnId);
     const destColumn = columns.find(col => col._id === destColumnId);
     
     if (!sourceColumn || !destColumn) return columns;
 
+    // Create copies of the task arrays to avoid mutating the original state
     const sourceTasks = [...sourceColumn.tasks];
+    // If moving within the same column, use the same task array reference
     const destTasks = sourceColumnId === destColumnId ? sourceTasks : [...destColumn.tasks];
     
+    // Remove the task from its original position
     const [movedTask] = sourceTasks.splice(sourceIndex, 1);
+    
+    // Insert the task at its new position, handling both same-column and cross-column moves
     if (sourceColumnId === destColumnId) {
       sourceTasks.splice(destinationIndex, 0, movedTask);
     } else {
       destTasks.splice(destinationIndex, 0, movedTask);
     }
 
+    // Create a new columns array with the updated task arrays
     return columns.map(col => {
       if (col._id === sourceColumnId) return { ...col, tasks: sourceTasks };
       if (col._id === destColumnId) return { ...col, tasks: destTasks };
@@ -119,6 +137,7 @@ const Board = ({ boardId }: BoardProps) => {
     ) => {
       if (!board) return;
       
+      // Update the UI immediately for a responsive feel
       const updatedColumns = updateTaskPosition(
         board.columns,
         sourceColumnId,
@@ -128,9 +147,11 @@ const Board = ({ boardId }: BoardProps) => {
         taskId
       );
       
+      // Update local state with the new column arrangement
       setBoard({ ...board, columns: updatedColumns });
       
       try {
+        // Persist the changes to the server
         await fetch(`/api/tasks/${taskId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -141,7 +162,8 @@ const Board = ({ boardId }: BoardProps) => {
           }),
         });
       } catch (error) {
-        // Remove console.error statement
+        // Error handling could be improved here
+        // Potential enhancement: revert the UI change if the API call fails
       }
     },
     [board]
@@ -163,6 +185,7 @@ const Board = ({ boardId }: BoardProps) => {
         const newColumns = updateColumnsOrder(board!.columns, source.index, destination.index);
         setBoard({ ...board!, columns: newColumns });
         
+        // Persist column order to the server
         await fetch(`/api/columns/reorder`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -172,6 +195,7 @@ const Board = ({ boardId }: BoardProps) => {
           }),
         });
       } 
+      // Handle task movement
       else if (type === 'task') {
         const updatedColumns = updateTaskPosition(
           board!.columns,
@@ -182,8 +206,10 @@ const Board = ({ boardId }: BoardProps) => {
           draggableId
         );
         
+        // Update UI immediately
         setBoard({ ...board!, columns: updatedColumns });
         
+        // Persist task position to the server
         await fetch(`/api/tasks/${draggableId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
