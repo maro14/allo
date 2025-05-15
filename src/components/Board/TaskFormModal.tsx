@@ -63,7 +63,6 @@ export const TaskFormModal = ({
         onClose()
       }
     } catch (err) {
-      // Remove console.error statement
       alert(err instanceof Error ? err.message : 'Failed to create task');
     }
   }

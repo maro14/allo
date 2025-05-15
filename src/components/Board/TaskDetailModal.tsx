@@ -91,7 +91,10 @@ export const TaskDetailModal = ({
     //   }
     // })
     
-    setLocalTask(updatedTask)
+    setLocalTask({
+      ...updatedTask,
+      priority: editedPriority as "urgent" | "high" | "medium" | "low"
+    })
     setIsEditing(false)
     
     setIsLoading(true)
@@ -101,7 +104,7 @@ export const TaskDetailModal = ({
       await onUpdate(task._id, {
         title: editedTitle,
         description: editedDescription,
-        priority: editedPriority
+        priority: editedPriority as "urgent" | "high" | "medium" | "low"
       })
       // Remove console.log statement
     } catch (err) {
@@ -134,7 +137,9 @@ export const TaskDetailModal = ({
     onClose()
     
     try {
-      await onDelete(task._id)
+      if (onDelete && task) {
+        await onDelete(task._id)
+      }
     } catch (err) {
       // Remove console.error statement
       // Could show a toast notification here
