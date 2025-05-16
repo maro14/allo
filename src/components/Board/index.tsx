@@ -1,20 +1,18 @@
-// src/components/board.index.tsx
+// src/components/Board/index.tsx
 import { useState, useEffect, useCallback } from 'react';
 import Column from './Column';
-import { Button } from '../ui/Button';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import AddColumn from './AddColumn';
+import BoardHeader from './BoardHeader';
 import { LoadingSpinnerBoard } from './LoadingSpinnerBoard';
 import { DragDropProvider } from '../../lib/dnd-provider';
-import { Task, Column, Board, BoardProps, DropResult } from '../../types/boardTypes';
-
-
+import { Task, Board, BoardProps, DropResult } from '../../types/boardTypes';
+import { updateColumnsOrder, updateTaskPosition } from './boardUtils';
+import { boardService } from '../../services/boardService';
 
 const Board = ({ boardId }: BoardProps) => {
   const [board, setBoard] = useState<Board | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [newColumnTitle, setNewColumnTitle] = useState('');
-  const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [editingColumnTitle, setEditingColumnTitle] = useState('');
   const [isReordering, setIsReordering] = useState(false);
@@ -23,18 +21,11 @@ const Board = ({ boardId }: BoardProps) => {
   useEffect(() => {
     if (!boardId) return;
 
-    const fetchBoard = async () => {
+    const fetchBoardData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/boards/${boardId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch board');
-        }
-        const data = await response.json();
-        if (!data.data.columns) {
-          data.data.columns = [];
-        }
-        setBoard(data.data);
+        const data = await boardService.fetchBoard(boardId);
+        setBoard(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -42,65 +33,8 @@ const Board = ({ boardId }: BoardProps) => {
       }
     };
 
-    fetchBoard();
+    fetchBoardData();
   }, [boardId]);
-
-  // Helper function to update column order
-  const updateColumnsOrder = (columns: Column[], dragIndex: number, hoverIndex: number) => {
-    const newColumns = [...columns];
-    const [movedColumn] = newColumns.splice(dragIndex, 1);
-    newColumns.splice(hoverIndex, 0, movedColumn);
-    return newColumns;
-  };
-
-  // Helper function to update task position
-  /**
-   * Updates the position of tasks within or between columns
-   * 
-   * @param columns - The current columns array from the board state
-   * @param sourceColumnId - ID of the column where the task originated
-   * @param destColumnId - ID of the column where the task is being moved to
-   * @param sourceIndex - Original position index of the task in the source column
-   * @param destinationIndex - Target position index for the task in the destination column
-   * @param taskId - ID of the task being moved
-   * @returns Updated columns array with the task in its new position
-   */
-  const updateTaskPosition = (
-    columns: Column[],
-    sourceColumnId: string,
-    destColumnId: string,
-    sourceIndex: number,
-    destinationIndex: number,
-    taskId: string
-  ) => {
-    // Find the source and destination columns
-    const sourceColumn = columns.find(col => col._id === sourceColumnId);
-    const destColumn = columns.find(col => col._id === destColumnId);
-    
-    if (!sourceColumn || !destColumn) return columns;
-
-    // Create copies of the task arrays to avoid mutating the original state
-    const sourceTasks = [...sourceColumn.tasks];
-    // If moving within the same column, use the same task array reference
-    const destTasks = sourceColumnId === destColumnId ? sourceTasks : [...destColumn.tasks];
-    
-    // Remove the task from its original position
-    const [movedTask] = sourceTasks.splice(sourceIndex, 1);
-    
-    // Insert the task at its new position, handling both same-column and cross-column moves
-    if (sourceColumnId === destColumnId) {
-      sourceTasks.splice(destinationIndex, 0, movedTask);
-    } else {
-      destTasks.splice(destinationIndex, 0, movedTask);
-    }
-
-    // Create a new columns array with the updated task arrays
-    return columns.map(col => {
-      if (col._id === sourceColumnId) return { ...col, tasks: sourceTasks };
-      if (col._id === destColumnId) return { ...col, tasks: destTasks };
-      return col;
-    });
-  };
 
   // Refactored moveColumn function
   const moveColumn = useCallback(
@@ -111,16 +45,9 @@ const Board = ({ boardId }: BoardProps) => {
       setBoard({ ...board, columns: newColumns });
       
       try {
-        await fetch(`/api/columns/reorder`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            boardId, 
-            columnIds: newColumns.map(col => col._id) 
-          }),
-        });
+        await boardService.updateColumnOrder(boardId, newColumns.map(col => col._id));
       } catch (error) {
-        // Remove console.error statement
+        // Error handling could be improved here
       }
     },
     [board, boardId]
@@ -152,18 +79,14 @@ const Board = ({ boardId }: BoardProps) => {
       
       try {
         // Persist the changes to the server
-        await fetch(`/api/tasks/${taskId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sourceColumnId,
-            destinationColumnId,
-            destinationIndex,
-          }),
-        });
+        await boardService.updateTaskPosition(
+          taskId,
+          sourceColumnId,
+          destinationColumnId,
+          destinationIndex
+        );
       } catch (error) {
         // Error handling could be improved here
-        // Potential enhancement: revert the UI change if the API call fails
       }
     },
     [board]
@@ -186,14 +109,7 @@ const Board = ({ boardId }: BoardProps) => {
         setBoard({ ...board!, columns: newColumns });
         
         // Persist column order to the server
-        await fetch(`/api/columns/reorder`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            boardId, 
-            columnIds: newColumns.map(col => col._id) 
-          }),
-        });
+        await boardService.updateColumnOrder(boardId, newColumns.map(col => col._id));
       } 
       // Handle task movement
       else if (type === 'task') {
@@ -210,86 +126,17 @@ const Board = ({ boardId }: BoardProps) => {
         setBoard({ ...board!, columns: updatedColumns });
         
         // Persist task position to the server
-        await fetch(`/api/tasks/${draggableId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sourceColumnId: source.droppableId,
-            destinationColumnId: destination.droppableId,
-            destinationIndex: destination.index,
-          }),
-        });
+        await boardService.updateTaskPosition(
+          draggableId,
+          source.droppableId,
+          destination.droppableId,
+          destination.index
+        );
       }
     } catch (error) {
       console.error('Error during drag and drop:', error);
     } finally {
       setIsReordering(false);
-    }
-  };
-
-  const updateTaskOrder = async (
-      sourceColumn: Column,
-      destColumn: Column,
-      source: { index: number },
-      destination: { index: number },
-      taskId: string
-    ) => {
-      try {
-        const response = await fetch(`/api/tasks/${taskId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sourceColumnId: sourceColumn._id,
-            destinationColumnId: destColumn._id,
-            destinationIndex: destination.index,
-          }),
-        });
-    
-        if (!response.ok) {
-          throw new Error('Failed to update task order');
-        }
-      } catch (err) {
-        console.error('Error updating task order:', err);
-        alert('Failed to update task order');
-      }
-    };
-
-  const updateColumnOrder = async (columns: Column[]) => {
-    try {
-      await fetch(`/api/columns/order`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ columns }),
-      });
-    } catch (err) {
-      console.error('Error updating column order:', err);
-      alert('Failed to update column order.');
-    }
-  };
-
-  const handleAddColumn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newColumnTitle.trim() || !board) return;
-
-    try {
-      const response = await fetch(`/api/columns?boardId=${boardId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newColumnTitle }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create column');
-      }
-
-      const result = await response.json();
-      const newColumn = { ...result.data, tasks: [] };
-      setBoard({ ...board, columns: [...board.columns, newColumn] });
-      setNewColumnTitle('');
-      setIsAddingColumn(false);
-    } catch (err) {
-      // Remove console.error statement
-      alert(err instanceof Error ? err.message : 'Failed to create column');
     }
   };
 
@@ -314,16 +161,7 @@ const Board = ({ boardId }: BoardProps) => {
     }
 
     try {
-      const response = await fetch(`/api/columns`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ columnId, boardId }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete column');
-      }
-
+      await boardService.deleteColumn(columnId, boardId);
       const updatedColumns = board.columns.filter((column) => column._id !== columnId);
       setBoard({ ...board, columns: updatedColumns });
     } catch (err) {
@@ -341,16 +179,8 @@ const Board = ({ boardId }: BoardProps) => {
     if (!board || !editingColumnTitle.trim()) return;
 
     try {
-      const response = await fetch(`/api/columns`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ columnId, boardId, title: editingColumnTitle.trim() }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update column title');
-      }
-
+      await boardService.updateColumnTitle(columnId, boardId, editingColumnTitle.trim());
+      
       const updatedColumns = board.columns.map((column) => {
         if (column._id === columnId) {
           return { ...column, title: editingColumnTitle.trim() };
@@ -365,6 +195,11 @@ const Board = ({ boardId }: BoardProps) => {
       console.error('Error updating column title:', err);
       alert(err instanceof Error ? err.message : 'Failed to update column title');
     }
+  };
+
+  const handleColumnAdded = (newColumn: any) => {
+    if (!board) return;
+    setBoard({ ...board, columns: [...board.columns, newColumn] });
   };
 
   // Loading, error, and empty states
@@ -391,7 +226,7 @@ const Board = ({ boardId }: BoardProps) => {
         </div>
       )}
       <div className="p-4 h-full">
-        <h1 className="text-2xl font-bold mb-4">{board?.name}</h1>
+        <BoardHeader boardName={board.name} />
         <DragDropProvider>
           <div className="flex gap-4 overflow-x-auto min-h-[calc(100vh-12rem)] pb-8">
             {board.columns.map((column, index) => (
@@ -412,49 +247,10 @@ const Board = ({ boardId }: BoardProps) => {
               />
             ))}
             
-            <div className="flex-shrink-0 w-80">
-              {!isAddingColumn ? (
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
-                  <Button
-                    onClick={() => setIsAddingColumn(true)}
-                    className="flex items-center w-full h-12 justify-center"
-                    variant="outline"
-                  >
-                    <PlusIcon className="h-4 w-4 mr-1" />
-                    Add Column
-                  </Button>
-                </div>
-              ) : (
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-md p-3">
-                  <form onSubmit={handleAddColumn} className="flex flex-col">
-                    <input
-                      type="text"
-                      value={newColumnTitle}
-                      onChange={(e) => setNewColumnTitle(e.target.value)}
-                      placeholder="Column title"
-                      className="p-2 border rounded mb-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                      autoFocus
-                    />
-                    <div className="flex space-x-2">
-                      <Button type="submit" size="sm">
-                        Add
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setIsAddingColumn(false);
-                          setNewColumnTitle('');
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </div>
-              )}
-            </div>
+            <AddColumn 
+              boardId={boardId} 
+              onColumnAdded={handleColumnAdded} 
+            />
           </div>
         </DragDropProvider>
       </div>
