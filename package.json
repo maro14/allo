@@ -1,6 +1,6 @@
 {
   "name": "allo",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -8,6 +8,20 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "author": {
+    "name": "Teheskhiel Fritz",
+    "email": "teheskhielfritz@gmail.com"
+  },
+  "packageManager": "pnpm@10.11.0",
+  "license": "MIT",
+  "description": "Allo is a collaborative whiteboard app that allows users to create and share boards in real-time. It features a user-friendly interface, customizable boards, and various drawing tools for effective collaboration.",
+  "keywords": [
+    "whiteboard",
+    "collaboration",
+    "real-time",
+    "drawing",
+    "boards"
+  ],
   "dependencies": {
     "@clerk/nextjs": "^6.19.4",
     "@heroicons/react": "^2.2.0",
@@ -31,8 +45,13 @@
     "@types/node": "^22.15.18",
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",
+    "@typescript-eslint/eslint-plugin": "^8.32.1",
+    "@typescript-eslint/parser": "^8.32.1",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "prettier": "^3.5.3",
     "tailwindcss": "^4.1.7",
     "typescript": "^5.8.3"
   }
