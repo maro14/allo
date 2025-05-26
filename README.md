@@ -2,7 +2,27 @@
 
 ![Allo Screenshot](public/screenshot.png)
 
-Allo is a feature-rich Kanban board application designed to streamline task management and boost team productivity. Built with modern web technologies, it offers a seamless drag-and-drop experience with real-time updates.
+Allo is a feature-rich Kanban board application designed to streamline task management and boost team productivity. Built with modern web technologies, it offers a seamless drag-and-drop experience with real-time updates, advanced task management features, and a user-friendly interface. Whether you're managing personal projects or collaborating with a team, Allo provides the tools you need to stay organized and efficient.
+
+## 📦 Table of Contents
+- [Allo - Modern Kanban Board Application](#allo---modern-kanban-board-application)
+  - [📦 Table of Contents](#-table-of-contents)
+  - [✨ Key Features](#-key-features)
+  - [🛠️ Tech Stack](#-tech-stack)
+    - [Frontend](#frontend)
+    - [Backend](#backend)
+  - [🚀 Getting Started](#-getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+  - [🛤️ Roadmap](#-roadmap)
+  - [📂 Project Structure](#-project-structure)
+  - [🤝 Contributing](#-contributing)
+  - [📄 License](#-license)
+  - [🙏 Acknowledgments](#-acknowledgments)
+  - [📫 Contact](#-contact)
+  - [🌟 Follow Us](#-follow-us)
+  - [📝 Changelog](#-changelog)
+  - [📖 Documentation](#-documentation)
 
 ## ✨ Key Features
 
@@ -88,6 +108,11 @@ NEXTAUTH_SECRET=your_nextauth_secret
   - Add advanced analytics and reporting tools
   - Implement AI-driven task suggestions and prioritization
 
+- **Q3 2024**
+  - Expand user roles and permissions
+  - Introduce gamification features (e.g., achievements, rewards)
+  - Launch a marketplace for third-party plugins and themes
+
 ### Running the App
 ```bash
 # Development server
@@ -130,3 +155,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 - Inspired by Trello and Notion
 - Built with the amazing Next.js ecosystem
+
+## 📫 Contact
+If you have any questions or feedback, feel free to reach out:
+
+- Email: support@allo.com
+- Twitter: [@allo_app](https://twitter.com/allo_app)
+
+## 🌟 Follow Us
+Stay updated with the latest features and releases:
+- GitHub: [allo](https://github.com/maro14/allo)
+- Twitter: [@allo_app](https://twitter.com/allo_app)
+
+## 📝 Changelog
+For detailed changes and updates, please refer to the [CHANGELOG](CHANGELOG.md).
+
+## 📖 Documentation
+For comprehensive documentation, including API references and user guides, visit our [Documentation](https://docs.allo.com).
