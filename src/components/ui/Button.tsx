@@ -3,6 +3,7 @@ import React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/utils';
 
+// Button component with multiple variants, sizes, and loading states
 const buttonVariants = cva(
   "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none transition-all duration-200",
   {
@@ -48,6 +49,7 @@ const buttonVariants = cva(
   }
 );
 
+// ButtonProps interface to define the props for the Button component
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
@@ -59,6 +61,7 @@ export interface ButtonProps
   icon?: React.ReactNode; // New prop for a centered icon
 }
 
+// Button component definition
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ 
     className, 

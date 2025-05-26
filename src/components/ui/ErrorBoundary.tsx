@@ -1,5 +1,8 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
+/*
+ErrorBoundary component props and state interfaces
+*/
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
@@ -10,6 +13,7 @@ interface State {
   error: Error | null;
 }
 
+// ErrorBoundary component to catch JavaScript errors in its child component tree
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,

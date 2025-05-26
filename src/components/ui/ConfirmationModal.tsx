@@ -1,6 +1,7 @@
 import { Modal } from './Modal'
 import { Button } from './Button'
 
+// Utility function to conditionally join class names
 interface ConfirmationModalProps {
   isOpen: boolean
   onClose: () => void
@@ -12,6 +13,7 @@ interface ConfirmationModalProps {
   isLoading?: boolean
 }
 
+// ConfirmationModal component
 export const ConfirmationModal = ({
   isOpen,
   onClose,
