@@ -1,5 +1,6 @@
 // src/components/Board/index.tsx
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast'; // Added
 import Column from './Column';
 import AddColumn from './AddColumn';
 import BoardHeader from './BoardHeader';
@@ -8,6 +9,20 @@ import { DragDropProvider } from '../../lib/dnd-provider';
 import { Task, Board, BoardProps, DropResult } from '../../types/boardTypes';
 import { updateColumnsOrder, updateTaskPosition } from './boardUtils';
 import { boardService } from '../../services/boardService';
+
+// Added toastStyle (consider moving to a shared utility if used elsewhere)
+const toastStyle = {
+  style: {
+    border: '1px solid #D1D5DB', // gray-300
+    padding: '12px',
+    color: '#1F2937', // gray-800
+    backgroundColor: '#F9FAFB', // gray-50
+  },
+  iconTheme: {
+    primary: '#EF4444', // red-500
+    secondary: '#F9FAFB', // gray-50
+  },
+};
 
 const Board = ({ boardId }: BoardProps) => {
   const [board, setBoard] = useState<Board | null>(null);
@@ -41,13 +56,15 @@ const Board = ({ boardId }: BoardProps) => {
     async (dragIndex: number, hoverIndex: number) => {
       if (!board) return;
       
+      const originalColumns = board.columns;
       const newColumns = updateColumnsOrder(board.columns, dragIndex, hoverIndex);
       setBoard({ ...board, columns: newColumns });
       
       try {
         await boardService.updateColumnOrder(boardId, newColumns.map(col => col._id));
       } catch (error) {
-        // Error handling could be improved here
+        setBoard({ ...board, columns: originalColumns }); // Revert on error
+        toast.error(error instanceof Error ? error.message : 'Failed to reorder column.', toastStyle);
       }
     },
     [board, boardId]
@@ -64,6 +81,7 @@ const Board = ({ boardId }: BoardProps) => {
     ) => {
       if (!board) return;
       
+      const originalColumns = board.columns;
       // Update the UI immediately for a responsive feel
       const updatedColumns = updateTaskPosition(
         board.columns,
@@ -86,7 +104,8 @@ const Board = ({ boardId }: BoardProps) => {
           destinationIndex
         );
       } catch (error) {
-        // Error handling could be improved here
+        setBoard({ ...board, columns: originalColumns }); // Revert on error
+        toast.error(error instanceof Error ? error.message : 'Failed to move task.', toastStyle);
       }
     },
     [board]
@@ -156,17 +175,20 @@ const Board = ({ boardId }: BoardProps) => {
   const handleDeleteColumn = async (columnId: string) => {
     if (!board) return;
 
+    // Consider replacing confirm with a custom modal component for better UX
     if (!confirm('Are you sure you want to delete this column and all its tasks?')) {
       return;
     }
 
+    const originalColumns = board.columns;
     try {
       await boardService.deleteColumn(columnId, boardId);
       const updatedColumns = board.columns.filter((column) => column._id !== columnId);
       setBoard({ ...board, columns: updatedColumns });
+      toast.success('Column deleted successfully.', toastStyle);
     } catch (err) {
-      console.error('Error deleting column:', err);
-      alert(err instanceof Error ? err.message : 'Failed to delete column');
+      setBoard({ ...board, columns: originalColumns }); // Revert on error
+      toast.error(err instanceof Error ? err.message : 'Failed to delete column.', toastStyle);
     }
   };
 
@@ -178,22 +200,37 @@ const Board = ({ boardId }: BoardProps) => {
   const handleUpdateColumnTitle = async (columnId: string) => {
     if (!board || !editingColumnTitle.trim()) return;
 
+    const originalColumns = board.columns;
+    const columnToUpdate = originalColumns.find(col => col._id === columnId);
+    const originalTitle = columnToUpdate ? columnToUpdate.title : '';
+
     try {
-      await boardService.updateColumnTitle(columnId, boardId, editingColumnTitle.trim());
-      
-      const updatedColumns = board.columns.map((column) => {
+      // Optimistically update UI
+      const updatedColumnsOptimistic = board.columns.map((column) => {
         if (column._id === columnId) {
           return { ...column, title: editingColumnTitle.trim() };
         }
         return column;
       });
-
-      setBoard({ ...board, columns: updatedColumns });
+      setBoard({ ...board, columns: updatedColumnsOptimistic });
       setEditingColumnId(null);
       setEditingColumnTitle('');
+
+      await boardService.updateColumnTitle(columnId, boardId, editingColumnTitle.trim());
+      toast.success('Column title updated.', toastStyle);      
     } catch (err) {
-      console.error('Error updating column title:', err);
-      alert(err instanceof Error ? err.message : 'Failed to update column title');
+      // Revert UI on error
+      const revertedColumns = board.columns.map((column) => {
+        if (column._id === columnId) {
+          return { ...column, title: originalTitle }; // Revert to original title
+        }
+        return column;
+      });
+      setBoard({ ...board, columns: revertedColumns });
+      setEditingColumnId(columnId); // Optionally re-open editing mode or just show error
+      setEditingColumnTitle(originalTitle);
+
+      toast.error(err instanceof Error ? err.message : 'Failed to update column title.', toastStyle);
     }
   };
 

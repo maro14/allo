@@ -24,6 +24,16 @@ interface Board {
   updatedAt: string;
 }
 
+// Define toastStyle at module scope
+const toastStyle = {
+  duration: 3000,
+  style: {
+    borderRadius: '10px',
+    background: '#333',
+    color: '#fff',
+  },
+};
+
 /**
  * Dashboard Component
  * 
@@ -184,18 +194,18 @@ const Dashboard = () => {
         setEditingBoard(null)
         setEditName('')
         // Near the top of your file, add:
-        const toastStyle = {
-          duration: 3000,
-          style: {
-            borderRadius: '10px',
-            background: '#333',
-            color: '#fff',
-          },
-        }
+        // const toastStyle = {  // This line will be removed
+        //   duration: 3000,
+        //   style: {
+        //     borderRadius: '10px',
+        //     background: '#333',
+        //     color: '#fff',
+        //   },
+        // }
         
         // Then in your code, replace instances like:
         toast.success('Board updated successfully!', {
-          ...toastStyle,
+          ...toastStyle, // This will now refer to the module-scoped toastStyle
           icon: '✅',
         })
       } else {

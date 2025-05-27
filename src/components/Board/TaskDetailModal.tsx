@@ -5,6 +5,10 @@ import { TaskType } from './Column'
 import { CheckIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { PrioritySelector } from './PrioritySelector'
 import { ConfirmationModal } from '../ui/ConfirmationModal' // Add this import
+import toast from 'react-hot-toast'; // Import toast
+
+// Assuming toastStyle is imported or defined in a shared utility
+// import { toastStyle } from '../../styles/toastStyle'; 
 
 interface TaskDetailModalProps {
   task: TaskType | null
@@ -67,6 +71,10 @@ export const TaskDetailModal = ({
     
     if (!editedTitle.trim()) {
       setError('Task title cannot be empty')
+      // Add toast notification for empty title
+      toast.error('Task title cannot be empty', {
+        // ...toastStyle, // Apply consistent styling if available
+      });
       return
     }
     
@@ -106,10 +114,16 @@ export const TaskDetailModal = ({
         description: editedDescription,
         priority: editedPriority as "urgent" | "high" | "medium" | "low"
       })
-      // Remove console.log statement
+      toast.success('Task updated successfully!', {
+        // ...toastStyle, 
+        // icon: '✅' 
+      });
     } catch (err) {
-      // Remove console.error statement
       setError('Failed to update task. Please try again.')
+      // Add toast notification for update failure
+      toast.error('Failed to update task. Please try again.', {
+        // ...toastStyle, 
+      });
       // Revert to previous state on error
       setLocalTask(previousTask)
       setEditedTitle(previousTask.title)
@@ -174,8 +188,13 @@ export const TaskDetailModal = ({
     
     try {
       await onUpdate(task._id, { subtasks: updatedSubtasks })
+      // Optionally, add a success toast for subtask toggle if desired
+      // toast.success('Subtask updated!', { ...toastStyle });
     } catch (err) {
-      // Remove console.error statement
+      // Add toast notification for subtask toggle failure
+      toast.error('Failed to update subtask. Please try again.', {
+        // ...toastStyle, 
+      });
       // Revert to previous state on error
       setCompletedSubtasks(previousSubtasks?.filter(s => s.completed).map(s => s._id) || [])
     }
