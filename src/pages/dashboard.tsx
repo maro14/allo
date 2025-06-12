@@ -1,20 +1,25 @@
 //src/pages/dashboard.tsx
-// Import toast for notifications
 import { useAuth, useUser } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { DashboardLayout } from '../components/layout/DashboardLayout'
-import { 
-  PlusIcon, 
-  CalendarIcon, 
-  PencilIcon, 
+import {
+  PlusIcon,
+  CalendarIcon,
+  PencilIcon,
   TrashIcon,
   CheckIcon,
   XMarkIcon,
-  ArrowsUpDownIcon // Add for sorting
+  ArrowsUpDownIcon,
+  Squares2X2Icon,
+  ClockIcon,
+  SparklesIcon,
+  EllipsisVerticalIcon,
+  EyeIcon,
+  DocumentDuplicateIcon
 } from '@heroicons/react/24/outline'
-import { LoadingSpinnerBoard } from '../components/Board/LoadingSpinnerBoard'
-import toast, { Toaster } from 'react-hot-toast' // Update toast import
+
+import toast, { Toaster } from 'react-hot-toast'
 
 // Define proper types for Board
 interface Board {
@@ -24,13 +29,69 @@ interface Board {
   updatedAt: string;
 }
 
+// Define sort options type
+type SortOrder = 'newest' | 'oldest' | 'alphabetical';
+
+// Define the sort options for better type safety
+const SORT_OPTIONS: { value: SortOrder; label: string; icon: React.ComponentType<any> }[] = [
+  { value: 'newest', label: 'Newest First', icon: SparklesIcon },
+  { value: 'oldest', label: 'Oldest First', icon: ClockIcon },
+  { value: 'alphabetical', label: 'A-Z', icon: ArrowsUpDownIcon },
+];
+
+// Skeleton loader component for better loading states
+const BoardCardSkeleton = () => (
+  <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-100 dark:border-gray-700 animate-pulse">
+    <div className="flex items-start justify-between mb-4">
+      <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-md w-3/4"></div>
+      <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+    </div>
+    <div className="space-y-3">
+      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+    </div>
+    <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+    </div>
+  </div>
+);
+
+// Enhanced empty state component
+const EmptyState = () => (
+  <div className="text-center py-16">
+    <div className="relative">
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-32 h-32 bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-full opacity-50"></div>
+      </div>
+      <div className="relative">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg mb-6">
+          <Squares2X2Icon className="h-8 w-8 text-white" />
+        </div>
+      </div>
+    </div>
+    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+      No boards yet
+    </h3>
+    <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-sm mx-auto">
+      Create your first board to start organizing your tasks and boost your productivity.
+    </p>
+    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+      <div className="inline-flex items-center text-sm text-gray-400 dark:text-gray-500">
+        <SparklesIcon className="h-4 w-4 mr-2" />
+        Get started in seconds
+      </div>
+    </div>
+  </div>
+);
+
 // Define toastStyle at module scope
 const toastStyle = {
   duration: 3000,
   style: {
-    borderRadius: '10px',
-    background: '#333',
+    borderRadius: '12px',
+    background: '#1f2937',
     color: '#fff',
+    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
   },
 };
 
@@ -99,35 +160,20 @@ const Dashboard = () => {
         setBoards([newBoard.data, ...boards])
         setNewBoardName('')
         toast.success('Board created successfully!', {
-          duration: 4000,
+          ...toastStyle,
           icon: '🎉',
-          style: {
-            borderRadius: '10px',
-            background: '#333',
-            color: '#fff',
-          },
         })
       } else {
         toast.error(newBoard.error || 'Failed to create board', {
-          duration: 4000,
+          ...toastStyle,
           icon: '❌',
-          style: {
-            borderRadius: '10px',
-            background: '#333',
-            color: '#fff',
-          },
         })
       }
     } catch (err) {
       console.error('Error creating board:', err)
       toast.error('Failed to create board. Please try again.', {
-        duration: 4000,
+        ...toastStyle,
         icon: '❌',
-        style: {
-          borderRadius: '10px',
-          background: '#333',
-          color: '#fff',
-        },
       })
     } finally {
       setIsCreating(false)
@@ -211,25 +257,15 @@ const Dashboard = () => {
       } else {
         console.error('Failed to update board:', result.error)
         toast.error('Failed to update board', {
-          duration: 3000,
+          ...toastStyle,
           icon: '❌',
-          style: {
-            borderRadius: '10px',
-            background: '#333',
-            color: '#fff',
-          },
         })
       }
     } catch (err) {
       console.error('Error updating board:', err)
       toast.error('Error updating board. Please try again.', {
-        duration: 3000,
+        ...toastStyle,
         icon: '❌',
-        style: {
-          borderRadius: '10px',
-          background: '#333',
-          color: '#fff',
-        },
       })
     }
   }
@@ -253,36 +289,21 @@ const Dashboard = () => {
       if (result.success) {
         setBoards(boards.filter(board => board._id !== boardId))
         toast.success('Board deleted successfully', {
-          duration: 3000,
+          ...toastStyle,
           icon: '🗑️',
-          style: {
-            borderRadius: '10px',
-            background: '#333',
-            color: '#fff',
-          },
         })
       } else {
         console.error('Failed to delete board:', result.error)
         toast.error('Failed to delete board', {
-          duration: 3000,
+          ...toastStyle,
           icon: '❌',
-          style: {
-            borderRadius: '10px',
-            background: '#333',
-            color: '#fff',
-          },
         })
       }
     } catch (err) {
       console.error('Error deleting board:', err)
       toast.error('Error deleting board. Please try again.', {
-        duration: 3000,
+        ...toastStyle,
         icon: '❌',
-        style: {
-          borderRadius: '10px',
-          background: '#333',
-          color: '#fff',
-        },
       })
     }
   }
@@ -290,145 +311,241 @@ const Dashboard = () => {
   // Update your return JSX with improved UI
   return (
     <DashboardLayout title="Dashboard" username={user?.firstName || 'User'} gridLayout={false}>
-      {/* Add Toaster component for toast notifications */}
-      <Toaster position="bottom-right" toastOptions={{
-        className: '',
-        style: {
-          maxWidth: '500px',
-        },
-      }} />
-      
-      <div className="p-4 md:p-6 max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-4 md:mb-0 mr-3">
-            Your Boards
-          </h1>
-          
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <div className="flex items-center">
-              <button 
-                onClick={() => setSortOrder(sortOrder === 'newest' ? 'alphabetical' : sortOrder === 'alphabetical' ? 'oldest' : 'newest')}
-                className="flex items-center text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              >
-                <ArrowsUpDownIcon className="h-4 w-4 mr-1" />
-                Sort: {sortOrder === 'newest' ? 'Newest' : sortOrder === 'oldest' ? 'Oldest' : 'A-Z'}
-              </button>
-            </div>
-            
-            <form onSubmit={createBoard} className="flex w-full sm:w-auto">
-              <input
-                type="text"
-                value={newBoardName}
-                onChange={(e) => setNewBoardName(e.target.value)}
-                placeholder="New board name"
-                className="p-2 px-4 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white w-full transition-all duration-200"
-              />
-              <button 
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg transition-all duration-200 flex items-center shadow-sm hover:shadow disabled:opacity-70 disabled:cursor-not-allowed"
-                disabled={!newBoardName.trim() || isCreating}
-              >
-                {isCreating ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Creating...
-                  </span>
-                ) : (
-                  <>
-                    <PlusIcon className="h-5 w-5 mr-1" />
-                    Create
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
+      {/* Enhanced Toaster component */}
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          className: '',
+          style: {
+            maxWidth: '400px',
+          },
+          success: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#ffffff',
+            },
+          },
+          error: {
+            duration: 5000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#ffffff',
+            },
+          },
+        }}
+      />
 
-        {isLoading ? (
-          <LoadingSpinnerBoard message="Loading your boards..." />
-        ) : (!boards || boards.length === 0) ? (
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl p-12 text-center shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="inline-block p-4 bg-blue-50 dark:bg-blue-900/30 rounded-full mb-4">
-              <PlusIcon className="h-8 w-8 text-blue-500" />
-            </div>
-            <p className="text-gray-600 dark:text-gray-300 text-lg font-medium">
-              You don't have any boards yet.
-            </p>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
-              Create your first board to get started!
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.isArray(boards) && sortBoards(boards).map((board, index) => (
-              <div key={board._id} className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col justify-between transform hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-md">
-                {editingBoard && editingBoard._id === board._id ? (
-                  <form onSubmit={updateBoard} className="flex-1 flex items-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Enhanced Header Section */}
+          <div className="mb-12">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              {/* Title and Stats */}
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-lg">
+                    <Squares2X2Icon className="h-6 w-6 text-white" />
+                  </div>
+                  <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                    Your Boards
+                  </h1>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-lg">
+                  {boards.length > 0
+                    ? `${boards.length} board${boards.length === 1 ? '' : 's'} • Organize your work efficiently`
+                    : 'Start organizing your work with boards'
+                  }
+                </p>
+              </div>
+
+              {/* Controls Section */}
+              <div className="flex flex-col sm:flex-row gap-4 lg:flex-shrink-0">
+                {/* Sort Dropdown */}
+                <div className="relative">
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                    className="appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 pr-10 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                  >
+                    {SORT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ArrowsUpDownIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                </div>
+
+                {/* Create Board Form */}
+                <form onSubmit={createBoard} className="flex gap-2">
+                  <div className="relative flex-1 min-w-0">
                     <input
                       type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="p-2 px-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white w-full"
-                      autoFocus
+                      value={newBoardName}
+                      onChange={(e) => setNewBoardName(e.target.value)}
+                      placeholder="Board name..."
+                      className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm"
+                      disabled={isCreating}
                     />
-                    <div className="flex ml-3">
-                      <button 
-                        type="submit" 
-                        className="p-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 mr-2"
-                        disabled={!editName.trim()}
-                      >
-                        <CheckIcon className="h-4 w-4" />
-                      </button>
-                      <button 
-                        type="button" 
-                        onClick={cancelEditing}
-                        className="p-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-                      >
-                        <XMarkIcon className="h-4 w-4" />
-                      </button>
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-6 py-3 btn-primary text-white font-medium rounded-xl flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    disabled={!newBoardName.trim() || isCreating}
+                  >
+                    {isCreating ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="hidden sm:inline">Creating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <PlusIcon className="h-4 w-4" />
+                        <span className="hidden sm:inline">Create Board</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {/* Content Section */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <BoardCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : (!boards || boards.length === 0) ? (
+            <EmptyState />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 board-grid">
+              {Array.isArray(boards) && sortBoards(boards).map((board) => (
+                <div
+                  key={board._id}
+                  className="group relative bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden board-card shadow-sm hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-200 dark:hover:border-blue-800"
+                >
+                  {editingBoard && editingBoard._id === board._id ? (
+                    <div className="p-6">
+                      <form onSubmit={updateBoard} className="space-y-4">
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="w-full p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-white transition-all duration-200"
+                          autoFocus
+                          placeholder="Board name..."
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="submit"
+                            className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                            disabled={!editName.trim()}
+                          >
+                            <CheckIcon className="h-4 w-4" />
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEditing}
+                            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                          >
+                            <XMarkIcon className="h-4 w-4" />
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
                     </div>
-                  </form>
-                ) : (
-                  <>
-                    <Link href={`/board/${board._id}`} className="flex-1 cursor-pointer">
-                      <div>
-                        <h2 className="text-xl font-semibold text-white">{board.name}</h2>
-                        <div className="flex items-center text-sm text-gray-400 mt-2">
-                          <CalendarIcon className="h-4 w-4 mr-1" />
-                          {new Date(board.createdAt || Date.now()).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
+                  ) : (
+                    <>
+                      {/* Board Card Header */}
+                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              startEditing(board);
+                            }}
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all duration-200"
+                            title="Edit board"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              deleteBoard(board._id);
+                            }}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200"
+                            title="Delete board"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
-                    </Link>
-                    <div className="flex items-center">
-                      <span className="bg-blue-900/30 text-blue-300 text-xs px-2 py-1 rounded-full mr-3">
-                        Board
-                      </span>
-                      <button 
-                        onClick={() => startEditing(board)}
-                        className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-md mr-1"
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
-                      <button 
-                        onClick={() => deleteBoard(board._id)}
-                        className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded-md"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+
+                      <Link href={`/board/${board._id}`} className="block p-6 h-full">
+                        <div className="flex flex-col h-full">
+                          {/* Board Icon and Title */}
+                          <div className="flex items-start gap-3 mb-4">
+                            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-sm flex-shrink-0">
+                              <Squares2X2Icon className="h-5 w-5 text-white" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+                                {board.name}
+                              </h3>
+                            </div>
+                          </div>
+
+                          {/* Board Stats */}
+                          <div className="flex-1 space-y-3 mb-4">
+                            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                              <CalendarIcon className="h-4 w-4" />
+                              <span>
+                                Created {new Date(board.createdAt || Date.now()).toLocaleDateString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                              <ClockIcon className="h-4 w-4" />
+                              <span>
+                                Updated {new Date(board.updatedAt || board.createdAt || Date.now()).toLocaleDateString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Board Footer */}
+                          <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                              <Squares2X2Icon className="h-3 w-3 mr-1" />
+                              Board
+                            </span>
+                            <div className="flex items-center text-sm text-gray-400 dark:text-gray-500 group-hover:text-blue-500 transition-colors duration-200">
+                              <EyeIcon className="h-4 w-4 mr-1" />
+                              <span>View</span>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   )
