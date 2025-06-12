@@ -93,25 +93,34 @@ NEXTAUTH_SECRET=your_nextauth_secret
 
 ## 🛤️ Roadmap
 
-- **Q4 2023**
+- **Q4 2024**
   - Implement real-time updates for boards and tasks
   - Add comments and activity logs for enhanced collaboration
   - Introduce board sharing with customizable permissions
 
-- **Q1 2024**
+- **Q1 2025**
   - Integrate with third-party services (e.g., Slack, Google Calendar)
   - Enhance mobile responsiveness and offline capabilities
   - Improve accessibility features
 
-- **Q2 2024**
+- **Q2 2025**
   - Launch a public API for third-party integrations
   - Add advanced analytics and reporting tools
   - Implement AI-driven task suggestions and prioritization
 
-- **Q3 2024**
+- **Q3 2025**
   - Expand user roles and permissions
   - Introduce gamification features (e.g., achievements, rewards)
   - Launch a marketplace for third-party plugins and themes
+
+- **Q4 2025**
+  - Explore AI-powered automation for repetitive tasks
+  - Enhance security features with advanced encryption
+  - Expand internationalization and localization support
+
+- **Ongoing**
+  - Regular updates and bug fixes
+  - Community-driven feature requests and improvements
 
 ### Running the App
 ```bash
